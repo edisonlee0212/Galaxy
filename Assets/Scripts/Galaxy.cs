@@ -44,19 +44,37 @@ namespace Galaxy
 
         public Orbit() { }
         #endregion
-        public void GetPosition(float angle, out float x, out float y, out float z)
+        public void SetPoint(float angle, ref Vector3 point)
         {
-            x = Mathf.Sin(angle) * m_A;
-            y = Mathf.Cos(angle) * m_B;
-            z = 0;
-            float tmp = x;
-            x = tmp * Mathf.Cos(m_Rotation) - y * Mathf.Sin(m_Rotation);
-            y = tmp * Mathf.Sin(m_Rotation) + y * Mathf.Cos(m_Rotation);
-            x += m_CenterPosition.x;
-            y += m_CenterPosition.y;
-            z += m_CenterPosition.z;
+            point.x = Mathf.Sin(angle) * m_A;
+            point.y = Mathf.Cos(angle) * m_B;
+            point.z = 0;
+            /*float tmp = point.x;
+            point.x = tmp * Mathf.Cos(m_Rotation) - point.y * Mathf.Sin(m_Rotation);
+            point.y = tmp * Mathf.Sin(m_Rotation) + point.y * Mathf.Cos(m_Rotation);*/
+            point = Quaternion.AngleAxis(angle, Vector3.forward) * point;
+            point.x += m_CenterPosition.x;
+            point.y += m_CenterPosition.y;
+            point.z += m_CenterPosition.z;
+            
         }
-
+        public Vector3 GetPoint(float angle)
+        {
+            Vector3 point = new Vector3();
+            point.x = Mathf.Sin(angle) * m_A;
+            point.y = Mathf.Cos(angle) * m_B;
+            point.z = 0;
+            /*float tmp = point.x;
+            point.x = tmp * Mathf.Cos(m_Rotation) - point.y * Mathf.Sin(m_Rotation);
+            point.y = tmp * Mathf.Sin(m_Rotation) + point.y * Mathf.Cos(m_Rotation);*/
+            point = Quaternion.AngleAxis(m_Rotation, Vector3.forward) * point;
+            point = Quaternion.AngleAxis(m_TiltX, Vector3.up) * point;
+            point = Quaternion.AngleAxis(m_TiltY, Vector3.right) * point;
+            point.x += m_CenterPosition.x;
+            point.y += m_CenterPosition.y;
+            point.z += m_CenterPosition.z;
+            return point;
+        }
     }
 
     public class DensityWave
@@ -65,17 +83,8 @@ namespace Galaxy
         private DensityWaveProperties m_DensityWaveProperties;
 
         public DensityWaveProperties DensityWaveProperties { get => m_DensityWaveProperties; set => m_DensityWaveProperties = value; }
-
-        public void SetOrbit(float proportion, ref Orbit orbit)
-        {
-            DensityWaveProperties.SetOrbit(proportion, ref orbit);
-        }
-
-        public DensityWave(DensityWaveProperties densityWaveProperties)
-        {
-            SetDensityWaveProperties(densityWaveProperties);
-        }
-
+        
+        #region Properties setters
         public void SetDensityWaveProperties(DensityWaveProperties densityWaveProperties)
         {
             DensityWaveProperties = densityWaveProperties;
@@ -99,12 +108,64 @@ namespace Galaxy
             SetCoreACoreB();
         }
 
+        public void SetMaxA(float maxA)
+        {
+            m_DensityWaveProperties.maximumA = maxA;
+            SetCoreACoreB();
+        }
+
+        public void SetMaxB(float maxB)
+        {
+            m_DensityWaveProperties.maximumB = maxB;
+            SetCoreACoreB();
+        }
+
+        public void SetMinRadius(float radius)
+        {
+            m_DensityWaveProperties.minimumRadius = radius;
+            SetCoreACoreB();
+        }
+
+        public void SetCenterTiltX(float tiltX)
+        {
+            m_DensityWaveProperties.centerTiltX = tiltX;
+        }
+
+        public void SetCenterTiltY(float tiltY)
+        {
+            m_DensityWaveProperties.centerTiltY = tiltY;
+        }
+
+        public void SetCoreTiltX(float tiltX)
+        {
+            m_DensityWaveProperties.coreTiltX = tiltX;
+        }
+
+        public void SetCoreTiltY(float tiltY)
+        {
+            m_DensityWaveProperties.coreTiltY = tiltY;
+        }
+
         private void SetCoreACoreB()
         {
-            float ab = DensityWaveProperties.minimumRadius + DensityWaveProperties.minimumRadius + ((DensityWaveProperties.maximumA + DensityWaveProperties.maximumB) - DensityWaveProperties.minimumRadius - DensityWaveProperties.minimumRadius) * DensityWaveProperties.coreProportion;
-            m_DensityWaveProperties.CoreA = ab * DensityWaveProperties.coreEccentricity;
-            m_DensityWaveProperties.CoreB = ab * (1 - DensityWaveProperties.coreEccentricity);
+            float ab = m_DensityWaveProperties.minimumRadius + m_DensityWaveProperties.minimumRadius + 
+                ((m_DensityWaveProperties.maximumA + m_DensityWaveProperties.maximumB) - m_DensityWaveProperties.minimumRadius - m_DensityWaveProperties.minimumRadius)
+                * m_DensityWaveProperties.coreProportion;
+            m_DensityWaveProperties.CoreA = ab * m_DensityWaveProperties.coreEccentricity;
+            m_DensityWaveProperties.CoreB = ab * (1 - m_DensityWaveProperties.coreEccentricity);
         }
+        #endregion
+
+        public void SetOrbit(float proportion, ref Orbit orbit)
+        {
+            DensityWaveProperties.SetOrbit(proportion, ref orbit);
+        }
+
+        public DensityWave(DensityWaveProperties densityWaveProperties)
+        {
+            SetDensityWaveProperties(densityWaveProperties);
+        }
+        
     }
 
     [Serializable]
@@ -154,8 +215,8 @@ namespace Galaxy
             else
             {
                 float actualProportion = proportion / coreProportion;
-                orbit.A = CoreA * actualProportion + minimumRadius;
-                orbit.B = CoreB * actualProportion + minimumRadius;
+                orbit.A = (CoreA - minimumRadius) * actualProportion + minimumRadius;
+                orbit.B = (CoreB - minimumRadius) * actualProportion + minimumRadius;
                 orbit.TiltX = centerTiltX - (centerTiltX - coreTiltX) * actualProportion;
                 orbit.TiltY = centerTiltY - (centerTiltY - coreTiltY) * actualProportion;
             }

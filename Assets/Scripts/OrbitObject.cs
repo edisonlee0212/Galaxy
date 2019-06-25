@@ -23,8 +23,8 @@ namespace Galaxy
             for(int i = 0; i < pointAmount; i++)
             {
                 float angle = ((float)i / pointAmount) * 360 * Mathf.Deg2Rad;
-                orbit.GetPosition(angle, out float x, out float y, out float z);
-                points[i] = new Vector3(x, y, z);
+                points[i] = orbit.GetPoint(angle);
+                
             }
             points[pointAmount] = points[0];
             m_LineRenderer.positionCount = pointAmount + 1;
