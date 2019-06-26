@@ -1,88 +1,71 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
+using Unity.Transforms;
 using UnityEngine;
 namespace Galaxy
 {
-    public class Orbit
+    public static class GalaxyEntityArchetypes
     {
-        #region Private
-        [SerializeField]
-        private float m_A;
-        [SerializeField]
-        private float m_B;
-        [SerializeField]
-        private float m_Rotation;
-        [SerializeField]
-        private float m_TiltX;
-        [SerializeField]
-        private float m_TiltY;
-        [SerializeField]
-        private float3 m_CenterPosition;
-        #endregion
-        #region Getter and Setters
-        public float Rotation { get => m_Rotation; set => m_Rotation = value; }
-        public float A { get => m_A; set => m_A = value; }
-        public float B { get => m_B; set => m_B = value; }
-        public float TiltX { get => m_TiltX; set => m_TiltX = value; }
-        public float TiltY { get => m_TiltY; set => m_TiltY = value; }
-        public float3 CenterPosition { get => m_CenterPosition; set => m_CenterPosition = value; }
-        #endregion
-        #region Constructors
-        public Orbit(float A, float B, float rotation, float3 centerPosition, float tiltX = 0, float tiltY = 0)
-        {
-            m_A = A;
-            m_B = B;
-            m_Rotation = rotation;
-            m_TiltX = tiltX;
-            m_TiltY = tiltY;
-            m_CenterPosition = centerPosition;
-        }
+        private static EntityArchetype starEntityArchetype = World.Active.EntityManager.CreateArchetype(
+            typeof(StarTag),
+            typeof(IsDead),
+            typeof(StarProperties),
+            typeof(Translation),
+            typeof(Rotation));
 
-        public Orbit() { }
+        public static EntityArchetype StarEntityArchetype { get => starEntityArchetype;}
+    }
+
+    public struct Orbit
+    {
+        #region Public
+        public float a;
+        public float b;
+        public float rotation;
+        public float tiltX;
+        public float tiltY;
+        public float3 centerPosition;
         #endregion
+
+
+
         public void SetPoint(float angle, ref Vector3 point)
         {
-            point.x = Mathf.Sin(angle) * m_A;
-            point.y = Mathf.Cos(angle) * m_B;
+            point.x = Mathf.Sin(angle) * a;
+            point.y = Mathf.Cos(angle) * b;
             point.z = 0;
-            /*float tmp = point.x;
-            point.x = tmp * Mathf.Cos(m_Rotation) - point.y * Mathf.Sin(m_Rotation);
-            point.y = tmp * Mathf.Sin(m_Rotation) + point.y * Mathf.Cos(m_Rotation);*/
             point = Quaternion.AngleAxis(angle, Vector3.forward) * point;
-            point.x += m_CenterPosition.x;
-            point.y += m_CenterPosition.y;
-            point.z += m_CenterPosition.z;
+            point.x += centerPosition.x;
+            point.y += centerPosition.y;
+            point.z += centerPosition.z;
             
         }
         public Vector3 GetPoint(float angle)
         {
             Vector3 point = new Vector3();
-            point.x = Mathf.Sin(angle) * m_A;
-            point.y = Mathf.Cos(angle) * m_B;
+            point.x = Mathf.Sin(angle) * a;
+            point.y = Mathf.Cos(angle) * b;
             point.z = 0;
-            /*float tmp = point.x;
-            point.x = tmp * Mathf.Cos(m_Rotation) - point.y * Mathf.Sin(m_Rotation);
-            point.y = tmp * Mathf.Sin(m_Rotation) + point.y * Mathf.Cos(m_Rotation);*/
-            point = Quaternion.AngleAxis(m_Rotation, Vector3.forward) * point;
-            point = Quaternion.AngleAxis(m_TiltX, Vector3.up) * point;
-            point = Quaternion.AngleAxis(m_TiltY, Vector3.right) * point;
-            point.x += m_CenterPosition.x;
-            point.y += m_CenterPosition.y;
-            point.z += m_CenterPosition.z;
+            point = Quaternion.AngleAxis(rotation, Vector3.forward) * point;
+            point = Quaternion.AngleAxis(tiltX, Vector3.up) * point;
+            point = Quaternion.AngleAxis(tiltY, Vector3.right) * point;
+            point.x += centerPosition.x;
+            point.y += centerPosition.y;
+            point.z += centerPosition.z;
             return point;
         }
     }
 
     public class DensityWave
     {
-        [SerializeField]
-        private DensityWaveProperties m_DensityWaveProperties;
+        public DensityWaveProperties properties;
 
-        public DensityWaveProperties DensityWaveProperties { get => m_DensityWaveProperties; set => m_DensityWaveProperties = value; }
+        public DensityWaveProperties DensityWaveProperties { get => properties; set => properties = value; }
         
         #region Properties setters
         public void SetDensityWaveProperties(DensityWaveProperties densityWaveProperties)
@@ -93,72 +76,72 @@ namespace Galaxy
 
         public void SetRotation(float rotation)
         {
-            m_DensityWaveProperties.rotation = rotation;
+            properties.rotation = rotation;
         }
 
         public void SetCoreProportion(float proportion)
         {
-            m_DensityWaveProperties.coreProportion = proportion;
+            properties.coreProportion = proportion;
             SetCoreACoreB();
         }
 
         public void SetCoreEccentricity(float eccentricity)
         {
-            m_DensityWaveProperties.coreEccentricity = eccentricity;
+            properties.coreEccentricity = eccentricity;
             SetCoreACoreB();
         }
 
         public void SetMaxA(float maxA)
         {
-            m_DensityWaveProperties.maximumA = maxA;
+            properties.maximumA = maxA;
             SetCoreACoreB();
         }
 
         public void SetMaxB(float maxB)
         {
-            m_DensityWaveProperties.maximumB = maxB;
+            properties.maximumB = maxB;
             SetCoreACoreB();
         }
 
         public void SetMinRadius(float radius)
         {
-            m_DensityWaveProperties.minimumRadius = radius;
+            properties.minimumRadius = radius;
             SetCoreACoreB();
         }
 
         public void SetCenterTiltX(float tiltX)
         {
-            m_DensityWaveProperties.centerTiltX = tiltX;
+            properties.centerTiltX = tiltX;
         }
 
         public void SetCenterTiltY(float tiltY)
         {
-            m_DensityWaveProperties.centerTiltY = tiltY;
+            properties.centerTiltY = tiltY;
         }
 
         public void SetCoreTiltX(float tiltX)
         {
-            m_DensityWaveProperties.coreTiltX = tiltX;
+            properties.coreTiltX = tiltX;
         }
 
         public void SetCoreTiltY(float tiltY)
         {
-            m_DensityWaveProperties.coreTiltY = tiltY;
+            properties.coreTiltY = tiltY;
         }
 
         private void SetCoreACoreB()
         {
-            float ab = m_DensityWaveProperties.minimumRadius + m_DensityWaveProperties.minimumRadius + 
-                ((m_DensityWaveProperties.maximumA + m_DensityWaveProperties.maximumB) - m_DensityWaveProperties.minimumRadius - m_DensityWaveProperties.minimumRadius)
-                * m_DensityWaveProperties.coreProportion;
-            m_DensityWaveProperties.CoreA = ab * m_DensityWaveProperties.coreEccentricity;
-            m_DensityWaveProperties.CoreB = ab * (1 - m_DensityWaveProperties.coreEccentricity);
+            float ab = properties.minimumRadius + properties.minimumRadius + 
+                ((properties.maximumA + properties.maximumB) - properties.minimumRadius - properties.minimumRadius)
+                * properties.coreProportion;
+            properties.CoreA = ab * properties.coreEccentricity;
+            properties.CoreB = ab * (1 - properties.coreEccentricity);
         }
         #endregion
 
-        public void SetOrbit(float proportion, ref Orbit orbit)
+        public Orbit GetOrbit(float proportion)
         {
-            DensityWaveProperties.SetOrbit(proportion, ref orbit);
+            return properties.GetOrbit(proportion);
         }
 
         public DensityWave(DensityWaveProperties densityWaveProperties)
@@ -199,53 +182,145 @@ namespace Galaxy
         /// <param name="orbit">
         /// The ellipse will be reset by the proportion and the density wave properties.
         /// </param>
-        public void SetOrbit(float proportion, ref Orbit orbit)
+        public Orbit GetOrbit(float proportion)
         {
-            Debug.Assert(proportion >= 0 && proportion <= 1 && orbit != null);
+            Debug.Assert(proportion >= 0 && proportion <= 1);
+            Orbit orbit;
             if (proportion > coreProportion)
             {
                 //If the wave is outside the disk;
                 float actualProportion = (proportion - coreProportion) / (1 - coreProportion);
-                orbit.A = CoreA + (maximumA - CoreA) * actualProportion;
-                orbit.B = CoreB + (maximumB - CoreB) * actualProportion;
+                orbit.a = CoreA + (maximumA - CoreA) * actualProportion;
+                orbit.b = CoreB + (maximumB - CoreB) * actualProportion;
 
-                orbit.TiltX = coreTiltX * (1 - actualProportion);
-                orbit.TiltY = coreTiltY * (1 - actualProportion);
+                orbit.tiltX = coreTiltX * (1 - actualProportion);
+                orbit.tiltY = coreTiltY * (1 - actualProportion);
             }
             else
             {
                 float actualProportion = proportion / coreProportion;
-                orbit.A = (CoreA - minimumRadius) * actualProportion + minimumRadius;
-                orbit.B = (CoreB - minimumRadius) * actualProportion + minimumRadius;
-                orbit.TiltX = centerTiltX - (centerTiltX - coreTiltX) * actualProportion;
-                orbit.TiltY = centerTiltY - (centerTiltY - coreTiltY) * actualProportion;
+                orbit.a = (CoreA - minimumRadius) * actualProportion + minimumRadius;
+                orbit.b = (CoreB - minimumRadius) * actualProportion + minimumRadius;
+                orbit.tiltX = centerTiltX - (centerTiltX - coreTiltX) * actualProportion;
+                orbit.tiltY = centerTiltY - (centerTiltY - coreTiltY) * actualProportion;
             }
-            orbit.Rotation = rotation * proportion;
-            orbit.CenterPosition = centerPosition * (1 - proportion);
+            orbit.rotation = rotation * proportion;
+            orbit.centerPosition = centerPosition * (1 - proportion);
+            return orbit;
         }
     }
 
     [DisableAutoCreation]
-    public class Galaxy : JobComponentSystem
+    public class StarPositionCalculationSystem : JobComponentSystem
     {
-        private int m_StarAmount;
-        private int m_OrbitAmount;
-        private Orbit m_MinOrbit, m_MaxOrbit;
-
-        protected override void OnCreate()
-        {
-            base.OnCreate();
-
-        }
+        public NativeArray<Orbit> m_Orbits;
+        public DensityWave m_DensityWave;
+        public int m_OrbitsAmount;
+        public float m_SimulatedTime;
 
         protected override void OnDestroy()
         {
-            base.OnDestroy();
+            Shutdown();
         }
+
+        public void Init()
+        {
+            m_Orbits = new NativeArray<Orbit>(m_OrbitsAmount, Allocator.Persistent);
+            CalculateOrbits();
+        }
+
+        public NativeArray<Orbit> GetOrbitsArray()
+        {
+            if (m_Orbits.IsCreated) return m_Orbits;
+            return default;
+        }
+
+        public void CalculateOrbits()
+        {
+            for (int i = 0; i < m_OrbitsAmount; i++)
+            {
+                m_Orbits[i] = m_DensityWave.GetOrbit((float)i / (m_OrbitsAmount - 1));
+            }
+        }
+
+        public void SetTimeAndCalculate(float simulatedTime)
+        {
+            m_SimulatedTime = simulatedTime;
+            Update();
+        }
+
+        public void AddTimeAndCalculate(float time)
+        {
+            m_SimulatedTime += time;
+            Update();
+        }
+
+        public void Shutdown()
+        {
+            if (m_Orbits.IsCreated)
+            {
+                m_Orbits.Dispose();
+            }
+        }
+
+
+        struct CalculateStarPositions : IJobForEach<StarProperties, Translation, IsDead>
+        {
+            public float currentTime;
+            [ReadOnly] public NativeArray<Orbit> orbits;
+
+            public void Execute(ref StarProperties c0, ref Translation c1, ref IsDead c2)
+            {
+                if (!c2.value)
+                {
+                    float calculatedTime = c0.startingTime + currentTime;
+                    c1.Value = orbits[c0.orbitIndex].GetPoint(c0.startingTime + currentTime);
+                }
+            }
+        }
+
 
         protected override JobHandle OnUpdate(JobHandle inputDeps)
         {
-            throw new System.NotImplementedException();
+
+            var calculateStarPositionsJob = new CalculateStarPositions
+            {
+                currentTime = m_SimulatedTime,
+                orbits = m_Orbits
+            };
+            inputDeps = calculateStarPositionsJob.Schedule(this, inputDeps);
+            inputDeps.Complete();
+            return inputDeps;
+        }
+    }
+
+    public class Galaxy
+    {
+        private DensityWave m_DensityWave;
+        private int m_OrbitsAmount;
+        private StarPositionCalculationSystem m_StarPositionCalculationSystem;
+        public DensityWave DensityWave { get => m_DensityWave; set => m_DensityWave = value; }
+        public int OrbitsAmount { get => m_OrbitsAmount; set => m_OrbitsAmount = value; }
+        public StarPositionCalculationSystem StarPositionCalculationSystem { get => m_StarPositionCalculationSystem; set => m_StarPositionCalculationSystem = value; }
+
+        public Galaxy(int orbitAmount, DensityWaveProperties densityWaveProperties)
+        {
+            DensityWave = new DensityWave(densityWaveProperties);
+            OrbitsAmount = orbitAmount;
+            StarPositionCalculationSystem = World.Active.GetOrCreateSystem<StarPositionCalculationSystem>();
+            StarPositionCalculationSystem.m_OrbitsAmount = OrbitsAmount;
+            StarPositionCalculationSystem.m_DensityWave = DensityWave;
+            StarPositionCalculationSystem.Init();
+        }
+
+        public void SetTime(float time)
+        {
+            StarPositionCalculationSystem.SetTimeAndCalculate(time);
+        }
+
+        public void AddTime(float time)
+        {
+            StarPositionCalculationSystem.AddTimeAndCalculate(time);
         }
     }
 }

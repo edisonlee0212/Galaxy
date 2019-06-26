@@ -18,7 +18,7 @@ namespace Galaxy
 
         public void CalculateEllipse()
         {
-            int pointAmount = (int)(m_Orbit.A + m_Orbit.B) / 10 + 10;
+            int pointAmount = (int)(m_Orbit.a + m_Orbit.b) / 10 + 10;
             Vector3[] points = new Vector3[pointAmount + 1];
             for(int i = 0; i < pointAmount; i++)
             {

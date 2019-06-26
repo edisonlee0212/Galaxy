@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using Unity.Collections;
 using UnityEngine;
 namespace Galaxy
 {
@@ -10,42 +11,64 @@ namespace Galaxy
         private OrbitObject m_OrbitPrefab;
         [SerializeField]
         private int m_OrbitsAmount;
-        [SerializeField]
         private bool m_DisplayOrbits;
-        private OrbitObject[] m_Orbits;
+
+        List<OrbitObject> m_OrbitObjects;
+
+        NativeArray<Orbit> m_Orbits;
+        DensityWave m_DensityWave;
+
+        private float m_TimeSpeed;
+
         [SerializeField]
         private DensityWaveProperties m_DensityWaveProperties;
+        [SerializeField]
+        private StarFactory m_StarFactory;
 
-        private DensityWave m_DensityWave;
+        private List<Star> m_StarList;
+
+        Galaxy m_Galaxy;
         // Start is called before the first frame update
         void Start()
         {
+            m_TimeSpeed = 0.5f;
             Debug.Assert(m_OrbitsAmount <= 100 && m_OrbitsAmount >= 10);
-            m_DisplayOrbits = true;
-            m_Orbits = new OrbitObject[100];
-            for(int i = 0; i < 100; i++)
+
+            m_Galaxy = new Galaxy(m_OrbitsAmount, m_DensityWaveProperties);
+            m_Orbits = m_Galaxy.StarPositionCalculationSystem.m_Orbits;
+            m_OrbitObjects = new List<OrbitObject>();
+            for(int i = 0; i < m_OrbitsAmount; i++)
             {
                 OrbitObject instance = Instantiate(m_OrbitPrefab, transform);
-                instance.orbit = new Orbit();
+                instance.orbit = new Orbit { };
                 instance.gameObject.SetActive(false);
-                m_Orbits[i] = instance;
+                m_OrbitObjects.Add(instance);
             }
-            m_DensityWave = new DensityWave(m_DensityWaveProperties);
+            m_DensityWave = m_Galaxy.DensityWave;
             Recalculate();
+
+            m_StarFactory.Start();
+            m_StarList = new List<Star>();
+
+            for(int i = 0; i < 2000; i++)
+            {
+                m_StarList.Add(m_StarFactory.Get(new StarProperties {
+                    mass = 1,
+                    startingTime = Random.value * 360,
+                    index = i,
+                    orbitIndex = i % m_OrbitsAmount
+                }));
+            }
         }
 
         public void Recalculate()
         {
+            m_Galaxy.StarPositionCalculationSystem.CalculateOrbits();
             for(int i = 0; i < m_OrbitsAmount; i++)
             {
-                Orbit orbit = m_Orbits[i].orbit;
-                m_DensityWave.SetOrbit((float)i / (m_OrbitsAmount - 1), ref orbit);
-                m_Orbits[i].CalculateEllipse();
-                m_Orbits[i].gameObject.SetActive(m_DisplayOrbits);
-            }
-            for(int i = m_OrbitsAmount; i < 100; i++)
-            {
-                m_Orbits[i].gameObject.SetActive(false);
+                m_OrbitObjects[i].orbit = m_Orbits[i];
+                m_OrbitObjects[i].CalculateEllipse();
+                m_OrbitObjects[i].gameObject.SetActive(m_DisplayOrbits);
             }
         }
 
@@ -121,7 +144,21 @@ namespace Galaxy
             m_DensityWave.SetCoreTiltY(tiltY);
             Recalculate();
         }
+
+        public void SetTimeSpeed(float speed)
+        {
+            m_TimeSpeed = speed;
+        }
         #endregion
+
+        public void FixedUpdate()
+        {
+            m_Galaxy.AddTime(Time.fixedDeltaTime * m_TimeSpeed);
+            for(int i = 0; i < 2000; i++)
+            {
+                m_StarList[i].SyncRigidBody();
+            }
+        }
 
     }
 }

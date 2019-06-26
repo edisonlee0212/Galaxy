@@ -17,30 +17,36 @@ namespace Galaxy
         /// </summary>
         public float startingTime;
         /// <summary>
-        /// Index of the star in the list
+        /// This keep track of the position of the star in the list.
         /// </summary>
         public int index;
         /// <summary>
-        /// Rotation speed of the star in its orbit
+        /// Index of the orbit of the star;
         /// </summary>
-        public float angleSpeed;
+        public int orbitIndex;
         /// <summary>
-        /// a radius of the ellipse
+        /// Mass of the star, use this as a factor of angle speed.
         /// </summary>
-        public float a;
+        public float mass;
         /// <summary>
-        /// b radius of the ellipse
+        /// The deviation of height of its orbit
         /// </summary>
-        public float b;
+        public float heightOffset;
         /// <summary>
-        /// The deviation angle of the orbit, set when start.
+        /// the deviation of radius of its orbit
         /// </summary>
-        public float angleOffset;
+        public float radiusOffset;
     }
 
     [Serializable]
     public struct StarTag : IComponentData
     {
 
+    }
+
+    [Serializable]
+    public struct IsDead : IComponentData
+    {
+        public bool value;
     }
 }
