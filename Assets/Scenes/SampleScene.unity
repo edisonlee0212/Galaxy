@@ -5515,6 +5515,7 @@ MonoBehaviour:
   m_OrbitPrefab: {fileID: 2516425463289216105, guid: effe3f60203307745a47703076d2180e,
     type: 3}
   m_OrbitsAmount: 64
+  m_StarAmount: 2000
   m_DensityWaveProperties:
     minimumRadius: 5
     maximumA: 200

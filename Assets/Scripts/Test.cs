@@ -11,6 +11,9 @@ namespace Galaxy
         private OrbitObject m_OrbitPrefab;
         [SerializeField]
         private int m_OrbitsAmount;
+        [SerializeField]
+        private int m_StarAmount;
+
         private bool m_DisplayOrbits;
 
         List<OrbitObject> m_OrbitObjects;
@@ -24,6 +27,8 @@ namespace Galaxy
         private DensityWaveProperties m_DensityWaveProperties;
         [SerializeField]
         private StarFactory m_StarFactory;
+
+
 
         private List<Star> m_StarList;
 
@@ -50,7 +55,7 @@ namespace Galaxy
             m_StarFactory.Start();
             m_StarList = new List<Star>();
 
-            for(int i = 0; i < 2000; i++)
+            for(int i = 0; i < m_StarAmount; i++)
             {
                 m_StarList.Add(m_StarFactory.Get(new StarProperties {
                     mass = 1,
@@ -151,10 +156,10 @@ namespace Galaxy
         }
         #endregion
 
-        public void FixedUpdate()
+        public void Update()
         {
-            m_Galaxy.AddTime(Time.fixedDeltaTime * m_TimeSpeed);
-            for(int i = 0; i < 2000; i++)
+            m_Galaxy.AddTime(Time.deltaTime * m_TimeSpeed);
+            for(int i = 0; i < m_StarAmount; i++)
             {
                 m_StarList[i].SyncRigidBody();
             }

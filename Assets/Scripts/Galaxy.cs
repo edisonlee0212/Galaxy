@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
@@ -26,7 +27,7 @@ namespace Galaxy
         #region Public
         public float a;
         public float b;
-        public float rotation;
+        public float tiltZ;
         public float tiltX;
         public float tiltY;
         public float3 centerPosition;
@@ -51,7 +52,7 @@ namespace Galaxy
             point.x = Mathf.Sin(angle) * a;
             point.y = Mathf.Cos(angle) * b;
             point.z = 0;
-            point = Quaternion.AngleAxis(rotation, Vector3.forward) * point;
+            point = Quaternion.AngleAxis(tiltZ, Vector3.forward) * point;
             point = Quaternion.AngleAxis(tiltX, Vector3.up) * point;
             point = Quaternion.AngleAxis(tiltY, Vector3.right) * point;
             point.x += centerPosition.x;
@@ -204,7 +205,7 @@ namespace Galaxy
                 orbit.tiltX = centerTiltX - (centerTiltX - coreTiltX) * actualProportion;
                 orbit.tiltY = centerTiltY - (centerTiltY - coreTiltY) * actualProportion;
             }
-            orbit.rotation = rotation * proportion;
+            orbit.tiltZ = rotation * proportion;
             orbit.centerPosition = centerPosition * (1 - proportion);
             return orbit;
         }
@@ -263,13 +264,12 @@ namespace Galaxy
             }
         }
 
-
+        [BurstCompile] //200% speed boost
         struct CalculateStarPositions : IJobForEach<StarProperties, Translation, IsDead>
         {
-            public float currentTime;
+            [ReadOnly] public float currentTime;
             [ReadOnly] public NativeArray<Orbit> orbits;
-
-            public void Execute(ref StarProperties c0, ref Translation c1, ref IsDead c2)
+            public void Execute([ReadOnly] ref StarProperties c0, [WriteOnly] ref Translation c1, [ReadOnly] ref IsDead c2)
             {
                 if (!c2.value)
                 {

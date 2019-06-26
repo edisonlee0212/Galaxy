@@ -42,5 +42,7 @@ namespace Galaxy
             base.Despawn();
             m_StarFactory.Reclaim(this);
         }
+
+
     }
 }
