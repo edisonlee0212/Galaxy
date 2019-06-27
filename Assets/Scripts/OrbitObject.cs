@@ -6,8 +6,8 @@ namespace Galaxy
     [RequireComponent(typeof(LineRenderer))]
     public class OrbitObject : MonoBehaviour
     {
-        private Orbit m_Orbit;
-        public Orbit orbit { get => m_Orbit; set => m_Orbit = value; }
+        private OrbitProperties m_Orbit;
+        public OrbitProperties orbit { get => m_Orbit; set => m_Orbit = value; }
 
         private LineRenderer m_LineRenderer;
 
@@ -23,7 +23,7 @@ namespace Galaxy
             for(int i = 0; i < pointAmount; i++)
             {
                 float angle = ((float)i / pointAmount) * 360 * Mathf.Deg2Rad;
-                points[i] = orbit.GetPoint(angle);
+                points[i] = orbit.GetPoint(angle, false);
                 
             }
             points[pointAmount] = points[0];

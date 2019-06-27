@@ -18,7 +18,6 @@ namespace Galaxy
 
         List<OrbitObject> m_OrbitObjects;
 
-        NativeArray<Orbit> m_Orbits;
         DensityWave m_DensityWave;
 
         private float m_TimeSpeed;
@@ -39,13 +38,11 @@ namespace Galaxy
             m_TimeSpeed = 0.5f;
             Debug.Assert(m_OrbitsAmount <= 100 && m_OrbitsAmount >= 10);
 
-            m_Galaxy = new Galaxy(m_OrbitsAmount, m_DensityWaveProperties);
-            m_Orbits = m_Galaxy.StarPositionCalculationSystem.m_Orbits;
+            m_Galaxy = new Galaxy(m_DensityWaveProperties);
             m_OrbitObjects = new List<OrbitObject>();
             for(int i = 0; i < m_OrbitsAmount; i++)
             {
                 OrbitObject instance = Instantiate(m_OrbitPrefab, transform);
-                instance.orbit = new Orbit { };
                 instance.gameObject.SetActive(false);
                 m_OrbitObjects.Add(instance);
             }
@@ -54,24 +51,29 @@ namespace Galaxy
 
             m_StarFactory.Start();
             m_StarList = new List<Star>();
-
             for(int i = 0; i < m_StarAmount; i++)
             {
+                float proportion = Random.Next();
+                float mass = Random.Next();
                 m_StarList.Add(m_StarFactory.Get(new StarProperties {
-                    mass = 1,
-                    startingTime = Random.value * 360,
+                    mass = 0.5f + mass / 2,
+                    startingTime = Random.Next() * 360,
                     index = i,
-                    orbitIndex = i % m_OrbitsAmount
-                }));
+                    proportion = proportion,
+                    heightOffset = (float)Random.NextGaussianDouble(m_DensityWave.GetHeightOffset(proportion) * 300) + Random.Next() * 10 
+                }
+                , m_DensityWave.GetOrbit(proportion)));
             }
         }
+
+        
 
         public void Recalculate()
         {
             m_Galaxy.StarPositionCalculationSystem.CalculateOrbits();
             for(int i = 0; i < m_OrbitsAmount; i++)
             {
-                m_OrbitObjects[i].orbit = m_Orbits[i];
+                m_OrbitObjects[i].orbit = m_DensityWave.GetOrbit((float)i / (m_OrbitsAmount - 1));
                 m_OrbitObjects[i].CalculateEllipse();
                 m_OrbitObjects[i].gameObject.SetActive(m_DisplayOrbits);
             }
@@ -147,6 +149,24 @@ namespace Galaxy
         public void SetCoreTiltY(float tiltY)
         {
             m_DensityWave.SetCoreTiltY(tiltY);
+            Recalculate();
+        }
+
+        public void SetCoreSpeed(float speed)
+        {
+            m_DensityWave.SetCoreSpeed(speed);
+            Recalculate();
+        }
+
+        public void SetCenterSpeed(float speed)
+        {
+            m_DensityWave.SetCenterSpeed(speed);
+            Recalculate();
+        }
+
+        public void SetDiskSpeed(float speed)
+        {
+            m_DensityWave.SetDiskSpeed(speed);
             Recalculate();
         }
 

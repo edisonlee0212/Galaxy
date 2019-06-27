@@ -4,6 +4,8 @@ using UnityEngine;
 
 public class CameraControl : MonoBehaviour
 {
+    [SerializeField]
+    GameObject m_Camera;
     private float xAngle, yAngle;
     private Quaternion rotation;
     public void SetCameraRotationX(float x)
@@ -16,6 +18,12 @@ public class CameraControl : MonoBehaviour
         yAngle = y;
         RotateCamera();
     }
+
+    public void SetCameraFocus(float z)
+    {
+        m_Camera.transform.localPosition = new Vector3(0, 0, z);
+    }
+
     private void RotateCamera()
     {
         rotation = Quaternion.Euler(xAngle, yAngle, 0);

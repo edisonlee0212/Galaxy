@@ -16,58 +16,21 @@ namespace Galaxy
             typeof(StarTag),
             typeof(IsDead),
             typeof(StarProperties),
+            typeof(OrbitProperties),
             typeof(Translation),
             typeof(Rotation));
 
         public static EntityArchetype StarEntityArchetype { get => starEntityArchetype;}
     }
 
-    public struct Orbit
-    {
-        #region Public
-        public float a;
-        public float b;
-        public float tiltZ;
-        public float tiltX;
-        public float tiltY;
-        public float3 centerPosition;
-        #endregion
 
-
-
-        public void SetPoint(float angle, ref Vector3 point)
-        {
-            point.x = Mathf.Sin(angle) * a;
-            point.y = Mathf.Cos(angle) * b;
-            point.z = 0;
-            point = Quaternion.AngleAxis(angle, Vector3.forward) * point;
-            point.x += centerPosition.x;
-            point.y += centerPosition.y;
-            point.z += centerPosition.z;
-            
-        }
-        public Vector3 GetPoint(float angle)
-        {
-            Vector3 point = new Vector3();
-            point.x = Mathf.Sin(angle) * a;
-            point.y = Mathf.Cos(angle) * b;
-            point.z = 0;
-            point = Quaternion.AngleAxis(tiltZ, Vector3.forward) * point;
-            point = Quaternion.AngleAxis(tiltX, Vector3.up) * point;
-            point = Quaternion.AngleAxis(tiltY, Vector3.right) * point;
-            point.x += centerPosition.x;
-            point.y += centerPosition.y;
-            point.z += centerPosition.z;
-            return point;
-        }
-    }
 
     public class DensityWave
     {
         public DensityWaveProperties properties;
 
         public DensityWaveProperties DensityWaveProperties { get => properties; set => properties = value; }
-        
+
         #region Properties setters
         public void SetDensityWaveProperties(DensityWaveProperties densityWaveProperties)
         {
@@ -94,14 +57,29 @@ namespace Galaxy
 
         public void SetMaxA(float maxA)
         {
-            properties.maximumA = maxA;
+            properties.diskA = maxA;
             SetCoreACoreB();
         }
 
         public void SetMaxB(float maxB)
         {
-            properties.maximumB = maxB;
+            properties.diskB = maxB;
             SetCoreACoreB();
+        }
+
+        public void SetCoreSpeed(float speed)
+        {
+            properties.coreSpeed = speed;
+        }
+
+        public void SetCenterSpeed(float speed)
+        {
+            properties.centerSpeed = speed;
+        }
+
+        public void SetDiskSpeed(float speed)
+        {
+            properties.diskSpeed = speed;
         }
 
         public void SetMinRadius(float radius)
@@ -132,15 +110,15 @@ namespace Galaxy
 
         private void SetCoreACoreB()
         {
-            float ab = properties.minimumRadius + properties.minimumRadius + 
-                ((properties.maximumA + properties.maximumB) - properties.minimumRadius - properties.minimumRadius)
+            float ab = properties.minimumRadius + properties.minimumRadius +
+                ((properties.diskA + properties.diskB) - properties.minimumRadius - properties.minimumRadius)
                 * properties.coreProportion;
             properties.CoreA = ab * properties.coreEccentricity;
             properties.CoreB = ab * (1 - properties.coreEccentricity);
         }
         #endregion
 
-        public Orbit GetOrbit(float proportion)
+        public OrbitProperties GetOrbit(float proportion)
         {
             return properties.GetOrbit(proportion);
         }
@@ -149,23 +127,32 @@ namespace Galaxy
         {
             SetDensityWaveProperties(densityWaveProperties);
         }
-        
+        public float GetHeightOffset(float proportion)
+        {
+            return properties.GetHeightOffset(proportion);
+        }
     }
 
     [Serializable]
     public struct DensityWaveProperties
     {
         #region public
-        public float minimumRadius;
-        public float maximumA;
-        public float maximumB;
-        public float coreProportion;
-        public float coreEccentricity;
-        public float rotation;
-        public float centerTiltX;
-        public float centerTiltY;
+        public float diskA;
+        public float diskB;
+        public float diskSpeed;
+
         public float coreTiltX;
         public float coreTiltY;
+        public float coreEccentricity;
+        public float coreProportion;
+        public float coreSpeed;
+        
+        public float minimumRadius;
+        public float centerTiltX;
+        public float centerTiltY;
+        public float centerSpeed;
+
+        public float rotation;
         public float3 centerPosition;
         public float CoreA { get => coreA; set => coreA = value; }
         public float CoreB { get => coreB; set => coreB = value; }
@@ -183,19 +170,19 @@ namespace Galaxy
         /// <param name="orbit">
         /// The ellipse will be reset by the proportion and the density wave properties.
         /// </param>
-        public Orbit GetOrbit(float proportion)
+        public OrbitProperties GetOrbit(float proportion)
         {
             Debug.Assert(proportion >= 0 && proportion <= 1);
-            Orbit orbit;
+            OrbitProperties orbit;
             if (proportion > coreProportion)
             {
                 //If the wave is outside the disk;
                 float actualProportion = (proportion - coreProportion) / (1 - coreProportion);
-                orbit.a = CoreA + (maximumA - CoreA) * actualProportion;
-                orbit.b = CoreB + (maximumB - CoreB) * actualProportion;
-
+                orbit.a = CoreA + (diskA - CoreA) * actualProportion;
+                orbit.b = CoreB + (diskB - CoreB) * actualProportion;
                 orbit.tiltX = coreTiltX * (1 - actualProportion);
                 orbit.tiltY = coreTiltY * (1 - actualProportion);
+                orbit.speedMultiplier = coreSpeed + (diskSpeed - coreSpeed) * actualProportion;
             }
             else
             {
@@ -204,21 +191,37 @@ namespace Galaxy
                 orbit.b = (CoreB - minimumRadius) * actualProportion + minimumRadius;
                 orbit.tiltX = centerTiltX - (centerTiltX - coreTiltX) * actualProportion;
                 orbit.tiltY = centerTiltY - (centerTiltY - coreTiltY) * actualProportion;
+                orbit.speedMultiplier = (coreSpeed - centerSpeed) * actualProportion + centerSpeed;
             }
             orbit.tiltZ = rotation * proportion;
             orbit.centerPosition = centerPosition * (1 - proportion);
             return orbit;
         }
+
+        public float GetHeightOffset(float proportion)
+        {
+            float offset;
+            if (proportion > coreProportion)
+            {
+                offset = 1 - ((proportion - coreProportion) / (1 - coreProportion));
+            }
+            else
+            {
+                offset = proportion / coreProportion;
+            }
+            return offset * offset * offset;
+        }
+
     }
 
     [DisableAutoCreation]
     public class StarPositionCalculationSystem : JobComponentSystem
     {
-        public NativeArray<Orbit> m_Orbits;
         public DensityWave m_DensityWave;
-        public int m_OrbitsAmount;
         public float m_SimulatedTime;
-
+        public bool m_OrbitChanged;
+        CalculateStarPositions calculateStarPositionsJob;
+        CalculateStarOrbit calculateStarOrbitJob;
         protected override void OnDestroy()
         {
             Shutdown();
@@ -226,22 +229,16 @@ namespace Galaxy
 
         public void Init()
         {
-            m_Orbits = new NativeArray<Orbit>(m_OrbitsAmount, Allocator.Persistent);
+            calculateStarPositionsJob = new CalculateStarPositions { };
+            calculateStarOrbitJob = new CalculateStarOrbit {
+                densityWaveProperties = m_DensityWave.DensityWaveProperties
+            };
             CalculateOrbits();
-        }
-
-        public NativeArray<Orbit> GetOrbitsArray()
-        {
-            if (m_Orbits.IsCreated) return m_Orbits;
-            return default;
         }
 
         public void CalculateOrbits()
         {
-            for (int i = 0; i < m_OrbitsAmount; i++)
-            {
-                m_Orbits[i] = m_DensityWave.GetOrbit((float)i / (m_OrbitsAmount - 1));
-            }
+            m_OrbitChanged = true;
         }
 
         public void SetTimeAndCalculate(float simulatedTime)
@@ -258,36 +255,45 @@ namespace Galaxy
 
         public void Shutdown()
         {
-            if (m_Orbits.IsCreated)
-            {
-                m_Orbits.Dispose();
-            }
         }
 
         [BurstCompile] //200% speed boost
-        struct CalculateStarPositions : IJobForEach<StarProperties, Translation, IsDead>
+        struct CalculateStarPositions : IJobForEach<StarProperties, Translation, IsDead, OrbitProperties>
         {
             [ReadOnly] public float currentTime;
-            [ReadOnly] public NativeArray<Orbit> orbits;
-            public void Execute([ReadOnly] ref StarProperties c0, [WriteOnly] ref Translation c1, [ReadOnly] ref IsDead c2)
+            public void Execute([ReadOnly] ref StarProperties c0, [WriteOnly] ref Translation c1, [ReadOnly] ref IsDead c2, [ReadOnly] ref OrbitProperties c3)
             {
                 if (!c2.value)
                 {
                     float calculatedTime = c0.startingTime + currentTime;
-                    c1.Value = orbits[c0.orbitIndex].GetPoint(c0.startingTime + currentTime);
+                    c1.Value = c3.GetPoint((c0.startingTime + currentTime));
+                    c1.Value.z += c0.heightOffset;
                 }
+            }
+        }
+
+
+        [BurstCompile]
+        struct CalculateStarOrbit : IJobForEach<StarProperties, OrbitProperties>
+        {
+            [ReadOnly] public DensityWaveProperties densityWaveProperties;
+            public void Execute([ReadOnly] ref StarProperties c0, [WriteOnly] ref OrbitProperties c1)
+            {
+                c1 = densityWaveProperties.GetOrbit(c0.proportion);
             }
         }
 
 
         protected override JobHandle OnUpdate(JobHandle inputDeps)
         {
-
-            var calculateStarPositionsJob = new CalculateStarPositions
+            calculateStarPositionsJob.currentTime = m_SimulatedTime;
+            if (m_OrbitChanged)
             {
-                currentTime = m_SimulatedTime,
-                orbits = m_Orbits
-            };
+                m_OrbitChanged = false;
+                calculateStarOrbitJob.densityWaveProperties = m_DensityWave.DensityWaveProperties;
+                inputDeps = calculateStarOrbitJob.Schedule(this, inputDeps);
+                inputDeps.Complete();
+            }
             inputDeps = calculateStarPositionsJob.Schedule(this, inputDeps);
             inputDeps.Complete();
             return inputDeps;
@@ -303,12 +309,10 @@ namespace Galaxy
         public int OrbitsAmount { get => m_OrbitsAmount; set => m_OrbitsAmount = value; }
         public StarPositionCalculationSystem StarPositionCalculationSystem { get => m_StarPositionCalculationSystem; set => m_StarPositionCalculationSystem = value; }
 
-        public Galaxy(int orbitAmount, DensityWaveProperties densityWaveProperties)
+        public Galaxy(DensityWaveProperties densityWaveProperties)
         {
             DensityWave = new DensityWave(densityWaveProperties);
-            OrbitsAmount = orbitAmount;
             StarPositionCalculationSystem = World.Active.GetOrCreateSystem<StarPositionCalculationSystem>();
-            StarPositionCalculationSystem.m_OrbitsAmount = OrbitsAmount;
             StarPositionCalculationSystem.m_DensityWave = DensityWave;
             StarPositionCalculationSystem.Init();
         }

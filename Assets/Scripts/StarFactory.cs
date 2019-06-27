@@ -48,7 +48,7 @@ namespace Galaxy {
             m_StarPools[starToRecycle.StarId].Add(starToRecycle);
         }
 
-        public Star Get(StarProperties starProperties, int starId = 0)
+        public Star Get(StarProperties starProperties, OrbitProperties orbitProperties, int starId = 0)
         {
             Star instance;
             List<Star> pool = m_StarPools[starId];
@@ -67,6 +67,7 @@ namespace Galaxy {
                 SceneManager.MoveGameObjectToScene(instance.gameObject, m_PoolScene);
             }
             World.Active.EntityManager.SetComponentData(instance.entity, starProperties);
+            World.Active.EntityManager.SetComponentData(instance.entity, orbitProperties);
             instance.Spawn();
             return instance;
         }
