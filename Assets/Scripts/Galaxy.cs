@@ -6,6 +6,7 @@ using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
+using Unity.Rendering;
 using Unity.Transforms;
 using UnityEngine;
 namespace Galaxy
@@ -13,12 +14,12 @@ namespace Galaxy
     public static class GalaxyEntityArchetypes
     {
         private static EntityArchetype starEntityArchetype = World.Active.EntityManager.CreateArchetype(
-            typeof(StarTag),
-            typeof(IsDead),
+            typeof(Translation),
+            typeof(Rotation),
             typeof(StarProperties),
             typeof(OrbitProperties),
-            typeof(Translation),
-            typeof(Rotation));
+            typeof(IsDead)
+            );
 
         public static EntityArchetype StarEntityArchetype { get => starEntityArchetype;}
     }
@@ -201,15 +202,8 @@ namespace Galaxy
         public float GetHeightOffset(float proportion)
         {
             float offset;
-            if (proportion > coreProportion)
-            {
-                offset = 1 - ((proportion - coreProportion) / (1 - coreProportion));
-            }
-            else
-            {
-                offset = proportion / coreProportion;
-            }
-            return offset * offset * offset;
+            offset = 1 - proportion;
+            return Mathf.Sqrt(offset);
         }
 
     }

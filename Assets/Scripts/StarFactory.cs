@@ -1,6 +1,8 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using Unity.Entities;
+using Unity.Rendering;
+using Unity.Transforms;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -10,12 +12,15 @@ namespace Galaxy {
     {
         [SerializeField]
         Star[] m_StarPrefabs;
+
         List<Star>[] m_StarPools;
         Scene m_PoolScene;
 
+        [SerializeField]
+        RenderMesh m_RenderMesh;
+
         public void Start()
         {
-
             m_StarPools = new List<Star>[m_StarPrefabs.Length];
             for (int i = 0; i < m_StarPools.Length; i++)
             {
@@ -41,6 +46,7 @@ namespace Galaxy {
                 }
             }
             m_PoolScene = SceneManager.CreateScene(name);
+
         }
 
         public void Reclaim(Star starToRecycle)
@@ -68,6 +74,8 @@ namespace Galaxy {
             }
             World.Active.EntityManager.SetComponentData(instance.entity, starProperties);
             World.Active.EntityManager.SetComponentData(instance.entity, orbitProperties);
+
+            //World.Active.EntityManager.AddSharedComponentData<RenderMesh>(instance.entity, m_RenderMesh);
             instance.Spawn();
             return instance;
         }

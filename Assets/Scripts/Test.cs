@@ -27,7 +27,7 @@ namespace Galaxy
         [SerializeField]
         private StarFactory m_StarFactory;
 
-
+        bool m_Running = true;
 
         private List<Star> m_StarList;
 
@@ -60,7 +60,7 @@ namespace Galaxy
                     startingTime = Random.Next() * 360,
                     index = i,
                     proportion = proportion,
-                    heightOffset = (float)Random.NextGaussianDouble(m_DensityWave.GetHeightOffset(proportion) * 300) + Random.Next() * 10 
+                    heightOffset = (float)Random.NextGaussianDouble(m_DensityWave.GetHeightOffset(proportion) * 100)
                 }
                 , m_DensityWave.GetOrbit(proportion)));
             }
@@ -173,15 +173,26 @@ namespace Galaxy
         public void SetTimeSpeed(float speed)
         {
             m_TimeSpeed = speed;
+            if(speed == 0)
+            {
+                m_Running = false;
+            }
+            else
+            {
+                m_Running = true;
+            }
         }
         #endregion
-
+        
         public void Update()
         {
-            m_Galaxy.AddTime(Time.deltaTime * m_TimeSpeed);
-            for(int i = 0; i < m_StarAmount; i++)
+            if (m_Running)
             {
-                m_StarList[i].SyncRigidBody();
+                m_Galaxy.AddTime(Time.deltaTime * m_TimeSpeed);
+                for (int i = 0; i < m_StarAmount; i++)
+                {
+                    m_StarList[i].SyncRigidBody();
+                }
             }
         }
 
