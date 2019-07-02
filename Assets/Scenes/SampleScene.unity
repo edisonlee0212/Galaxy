@@ -2646,6 +2646,66 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 370247115}
   m_CullTransparentMesh: 0
+--- !u!1 &375340738
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 375340740}
+  - component: {fileID: 375340739}
+  - component: {fileID: 375340741}
+  m_Layer: 0
+  m_Name: StarSpawner
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &375340739
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 375340738}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eee1dd13df336dc4693b54519b80b9ce, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_StarPrefab: {fileID: 3098016883886360249, guid: 463be6885b30f4f4391a39a052a25bac,
+    type: 3}
+  m_Count: 10000
+--- !u!4 &375340740
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 375340738}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.41878211, y: -1.6578639, z: 0.48968887}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 4
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &375340741
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 375340738}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ea7d7495833204790ba1d3a8755397f8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ConversionMode: 0
 --- !u!1 &380961032
 GameObject:
   m_ObjectHideFlags: 0
@@ -4421,10 +4481,10 @@ MonoBehaviour:
   m_FillRect: {fileID: 1681005514}
   m_HandleRect: {fileID: 1690588633}
   m_Direction: 0
-  m_MinValue: 0
-  m_MaxValue: 3000
+  m_MinValue: 1
+  m_MaxValue: 10000
   m_WholeNumbers: 0
-  m_Value: 200
+  m_Value: 3000
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls:
@@ -6795,10 +6855,10 @@ MonoBehaviour:
   m_FillRect: {fileID: 555335409}
   m_HandleRect: {fileID: 38875798}
   m_Direction: 0
-  m_MinValue: 0
-  m_MaxValue: 3000
+  m_MinValue: 1
+  m_MaxValue: 10000
   m_WholeNumbers: 0
-  m_Value: 200
+  m_Value: 3000
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls:
@@ -6964,7 +7024,7 @@ GameObject:
   - component: {fileID: 1398390903}
   - component: {fileID: 1398390904}
   m_Layer: 0
-  m_Name: Test
+  m_Name: Game
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -6999,26 +7059,27 @@ MonoBehaviour:
   m_OrbitPrefab: {fileID: 2516425463289216105, guid: effe3f60203307745a47703076d2180e,
     type: 3}
   m_OrbitsAmount: 64
-  m_StarAmount: 100
   m_DensityWaveProperties:
-    diskA: 200
-    diskB: 200
-    diskSpeed: 1
-    coreTiltX: 0
-    coreTiltY: 0
-    coreEccentricity: 0.6
-    coreProportion: 0.3
-    coreSpeed: 1
-    minimumRadius: 5
-    centerTiltX: 0
-    centerTiltY: 0
-    centerSpeed: 1
-    rotation: 360
-    centerPosition:
+    DiskA: 3000
+    DiskB: 3000
+    DiskSpeed: 1
+    DiskColor: {r: 0, g: 0.45413113, b: 1, a: 0}
+    CoreTiltX: 0
+    CoreTiltY: 0
+    CoreEccentricity: 0.6
+    CoreProportion: 0.3
+    CoreSpeed: 20
+    CoreColor: {r: 1, g: 0.009896632, b: 0, a: 0}
+    MinimumRadius: 1
+    CenterTiltX: 0
+    CenterTiltY: 0
+    CenterSpeed: 5
+    CenterColor: {r: 1, g: 0.9606118, b: 0, a: 0}
+    Rotation: 360
+    CenterPosition:
       x: 0
       y: 0
       z: 0
-  m_StarFactory: {fileID: 11400000, guid: 003b7680acbcbd34b88e6a186a1c0ddc, type: 2}
 --- !u!1 &1407004220
 GameObject:
   m_ObjectHideFlags: 0
@@ -7178,7 +7239,7 @@ MonoBehaviour:
   m_MinValue: 0
   m_MaxValue: 2
   m_WholeNumbers: 0
-  m_Value: 0.5
+  m_Value: 0.1
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls:
@@ -8858,10 +8919,10 @@ MonoBehaviour:
   m_FillRect: {fileID: 2078620418}
   m_HandleRect: {fileID: 308976131}
   m_Direction: 0
-  m_MinValue: -4000
-  m_MaxValue: -10
+  m_MinValue: -10000
+  m_MaxValue: -1
   m_WholeNumbers: 0
-  m_Value: -400
+  m_Value: -10
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls:
