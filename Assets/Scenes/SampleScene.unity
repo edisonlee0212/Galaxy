@@ -7060,8 +7060,8 @@ MonoBehaviour:
     type: 3}
   m_OrbitsAmount: 64
   m_DensityWaveProperties:
-    DiskA: 3000
-    DiskB: 3000
+    DiskA: 6000
+    DiskB: 6000
     DiskSpeed: 1
     DiskColor: {r: 0, g: 0.45413113, b: 1, a: 0}
     CoreTiltX: 0

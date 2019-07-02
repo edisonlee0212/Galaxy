@@ -206,7 +206,7 @@ namespace Galaxy
                 float distance = Vector3.Distance(cameraPosition, c1.Value);
                 if (distance < 100) distance = 100;
                 if (distance > 10000) distance = 10000;
-                c4.Value = c0.Mass * distance / 300;
+                c4.Value = c0.Mass * distance / 200;
             }
         }
 
