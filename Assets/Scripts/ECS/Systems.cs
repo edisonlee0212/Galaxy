@@ -5,6 +5,9 @@ using Unity.Jobs;
 using Unity.Rendering;
 using Unity.Transforms;
 using UnityEngine;
+using Unity.Physics;
+using Unity.Physics.Systems;
+using Unity.Mathematics;
 
 namespace Galaxy
 {
@@ -127,15 +130,7 @@ namespace Galaxy
                     Debug.Log("Calculating colors");
                     for (int i = 0; i < count; i++)
                     {
-                        Entity instance = m_Stars.Dequeue();
-                        RenderMesh renderMesh = World.Active.EntityManager.GetSharedComponentData<RenderMesh>(instance);
-                        float proportion = World.Active.EntityManager.GetComponentData<StarProperties>(instance).Proportion;
-                        Material material = new Material(renderMesh.material);
-                        Color color = m_DensityWave.DensityWaveProperties.GetColor(proportion);
-                        Debug.Log(color);
-                        material.SetColor("_EmissionColor", color);
-                        renderMesh.material = material;
-                        World.Active.EntityManager.SetSharedComponentData(instance, renderMesh);
+                        //TODO
                     }
                 }
             }
@@ -172,12 +167,6 @@ namespace Galaxy
             Update();
         }
 
-        public void AddTimeAndCalculate(float time)
-        {
-            m_SimulatedTime += time;
-            Update();
-        }
-
         #region Jobs
         struct CullStarJob : IJobForEachWithEntity<StarProperties, Translation>
         {
@@ -194,20 +183,22 @@ namespace Galaxy
         }
 
         [BurstCompile]
-        struct CalculateStarPositionsJob : IJobForEach<StarProperties, Translation, OrbitProperties, Scale>
+        struct CalculateStarPositionsJob : IJobForEach<StarProperties, Translation, OrbitProperties, Scale, PhysicsCollider>
         {
             [ReadOnly] public float currentTime;
             [ReadOnly] public Vector3 cameraPosition;
-            public void Execute([ReadOnly] ref StarProperties c0, [WriteOnly] ref Translation c1, [ReadOnly] ref OrbitProperties c3, [ReadOnly] ref Scale c4)
+            public void Execute([ReadOnly] ref StarProperties c0, [WriteOnly] ref Translation c1, [ReadOnly] ref OrbitProperties c3, [ReadOnly] ref Scale c4, [ReadOnly] ref PhysicsCollider c5)
             {
                 float calculatedTime = c0.StartingTime + currentTime;
                 c1.Value = c3.GetPoint((c0.StartingTime + currentTime));
                 c1.Value.z += c0.HeightOffset;
                 float distance = Vector3.Distance(cameraPosition, c1.Value);
-                if (distance < 100) distance = 100;
-                if (distance > 10000) distance = 10000;
+                if (distance < 200) distance = 200;
+                if (distance > 7500) distance = 7500;
                 c4.Value = c0.Mass * distance / 200;
+                //c5.Value = Unity.Physics.SphereCollider.Create(float3.zero, c4.Value);
             }
+
         }
 
         struct CalculateStarOrbitJob : IJobForEachWithEntity<StarProperties, OrbitProperties>
@@ -241,5 +232,79 @@ namespace Galaxy
         public DensityWave DensityWave { get => m_DensityWave; set => m_DensityWave = value; }
         public bool CalculateOrbit { get => m_CalculateOrbit; set => m_CalculateOrbit = value; }
         public Camera MainCamera { get => m_MainCamera; set => m_MainCamera = value; }
+    }
+
+    [DisableAutoCreation]
+    public class CameraRayCastSystem : JobComponentSystem
+    {
+        private NativeArray<Unity.Physics.RaycastHit> m_HitResults;
+        private NativeArray<RaycastInput> m_Inputs;
+        private BuildPhysicsWorld m_PhysicsWorld;
+        private Camera m_MainCamera;
+        private RaycastInput m_RaycastInput;
+
+        public NativeArray<Unity.Physics.RaycastHit> HitResults { get => m_HitResults; set => m_HitResults = value; }
+        public NativeArray<RaycastInput> Inputs { get => m_Inputs; set => m_Inputs = value; }
+
+        protected override void OnCreateManager()
+        {
+            m_PhysicsWorld = World.Active.GetExistingSystem<BuildPhysicsWorld>();
+            m_Inputs = new NativeArray<RaycastInput>(1, Allocator.Persistent);
+            m_MainCamera = Camera.main;
+            Debug.Log(m_MainCamera);
+            m_RaycastInput = new RaycastInput()
+            {
+                Start = m_MainCamera.transform.position,
+                End = new Unity.Mathematics.float3(0, 0, 0),
+                Filter = new CollisionFilter()
+                {
+                    BelongsTo = ~0u, // all 1s, so all layers, collide with everything 
+                    CollidesWith = ~0u,
+                    GroupIndex = 0
+                }
+            };
+
+
+            m_HitResults = new NativeArray<Unity.Physics.RaycastHit>(1, Allocator.Persistent);
+
+
+        }
+
+        protected override void OnDestroyManager()
+        {
+            m_HitResults.Dispose();
+            m_Inputs.Dispose();
+        }
+
+        [BurstCompile]
+        public struct RaycastJob : IJobParallelFor
+        {
+            [ReadOnly] public CollisionWorld world;
+            [ReadOnly] public NativeArray<RaycastInput> inputs;
+            public NativeArray<Unity.Physics.RaycastHit> results;
+
+            public unsafe void Execute(int index)
+            {
+                Unity.Physics.RaycastHit hit;
+                world.CastRay(inputs[index], out hit);
+                results[index] = hit;
+            }
+        }
+        protected override JobHandle OnUpdate(JobHandle inputDeps)
+        {
+            UnityEngine.Ray ray = m_MainCamera.ScreenPointToRay(Input.mousePosition);
+            m_RaycastInput.Start = ray.origin;
+            m_RaycastInput.End = ray.origin + ray.direction * 2000;
+            m_Inputs[0] = m_RaycastInput;
+
+            inputDeps = new RaycastJob
+            {
+                inputs = Inputs,
+                results = HitResults,
+                world = m_PhysicsWorld.PhysicsWorld.CollisionWorld
+            }.Schedule(Inputs.Length, 5);
+            inputDeps.Complete();
+            return inputDeps;
+        }
     }
 }

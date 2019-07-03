@@ -6,9 +6,8 @@ using UnityEngine;
 namespace Galaxy
 {
     [RequiresEntityConversion]
-    public class Star : MonoBehaviour, IConvertGameObjectToEntity
+    public class StarConvertProxy : MonoBehaviour, IConvertGameObjectToEntity
     {
-        public ComponentTypes m_StarEntityComponents;
         public void Convert(Entity entity, EntityManager dstManager, GameObjectConversionSystem conversionSystem)
         {
             var properties = new StarProperties { };

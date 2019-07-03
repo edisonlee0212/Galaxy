@@ -8,6 +8,12 @@ namespace Galaxy
     public class Game : MonoBehaviour
     {
         [SerializeField]
+        private GameObject m_HighLight;
+
+        [SerializeField]
+        private Nebulas m_Nebulas;
+
+        [SerializeField]
         private OrbitObject m_OrbitPrefab;
 
         [SerializeField]
@@ -21,14 +27,16 @@ namespace Galaxy
         private DensityWave m_DensityWave;
         private float m_TimeSpeed;
         private bool m_Running = true;
-        private Galaxy m_Galaxy;
-
+        private GalaxySystem m_Galaxy;
         // Start is called before the first frame update
         void Start()
         {
-            m_TimeSpeed = 0.1f;
+            m_TimeSpeed = 0.01f;
             Debug.Assert(m_OrbitsAmount <= 100 && m_OrbitsAmount >= 10);
-            m_Galaxy = new Galaxy(m_DensityWaveProperties);
+            m_Galaxy = new GalaxySystem(m_DensityWaveProperties);
+            m_Galaxy.NebulasSystem = m_Nebulas;
+            m_Galaxy.Init();
+            
             m_OrbitObjects = new List<OrbitObject>();
             for(int i = 0; i < m_OrbitsAmount; i++)
             {
@@ -42,10 +50,15 @@ namespace Galaxy
 
         public void Update()
         {
-            
             m_Galaxy.AddTime(Time.deltaTime * m_TimeSpeed);
+            
         }
 
+        private void FixedUpdate()
+        {
+            m_Galaxy.CameraRayCast();
+            m_HighLight.transform.position = m_Galaxy.CameraRayCastSystem.HitResults[0].Position;
+        }
         /// <summary>
         /// To recalculate the orbit, and to reset every star.
         /// </summary>
