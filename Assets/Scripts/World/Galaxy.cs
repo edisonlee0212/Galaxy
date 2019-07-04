@@ -18,7 +18,9 @@ namespace Galaxy
         private int m_OrbitsAmount;
         private StarPositionCalculationSystem m_StarPositionCalculationSystem;
         private StarSpawnerSystem m_StarSpawnerSystem;
-        private CameraRayCastSystem m_CameraRayCastSystem;
+        //private CameraRayCastSystem m_CameraRayCastSystem;
+        private StarRayCastSystem m_StarRayCastSystem;
+
         private float m_Time;
 
         public DensityWave DensityWave { get => m_DensityWave; set => m_DensityWave = value; }
@@ -26,14 +28,17 @@ namespace Galaxy
         public StarPositionCalculationSystem StarPositionCalculationSystem { get => m_StarPositionCalculationSystem; set => m_StarPositionCalculationSystem = value; }
         public StarSpawnerSystem StarSpawnerSystem { get => m_StarSpawnerSystem; set => m_StarSpawnerSystem = value; }
         public Nebulas NebulasSystem { get => m_NebulasSystem; set => m_NebulasSystem = value; }
-        public CameraRayCastSystem CameraRayCastSystem { get => m_CameraRayCastSystem; set => m_CameraRayCastSystem = value; }
+        public StarRayCastSystem StarRayCastSystem { get => m_StarRayCastSystem; set => m_StarRayCastSystem = value; }
+
+        //public CameraRayCastSystem CameraRayCastSystem { get => m_CameraRayCastSystem; set => m_CameraRayCastSystem = value; }
 
         public GalaxySystem(DensityWaveProperties densityWaveProperties)
         {
             m_DensityWave = new DensityWave(densityWaveProperties);
             m_StarPositionCalculationSystem = World.Active.GetOrCreateSystem<StarPositionCalculationSystem>();
             m_StarSpawnerSystem = World.Active.GetOrCreateSystem<StarSpawnerSystem>();
-            m_CameraRayCastSystem = World.Active.GetOrCreateSystem<CameraRayCastSystem>();
+            //m_CameraRayCastSystem = World.Active.GetOrCreateSystem<CameraRayCastSystem>();
+            StarRayCastSystem = World.Active.GetOrCreateSystem<StarRayCastSystem>();
 
             m_StarPositionCalculationSystem.DensityWave = m_DensityWave;
             m_StarSpawnerSystem.DensityWave = m_DensityWave;
@@ -56,7 +61,8 @@ namespace Galaxy
 
         public void CameraRayCast()
         {
-            m_CameraRayCastSystem.Update();
+            //m_CameraRayCastSystem.Update();
+            StarRayCastSystem.Update();
         }
 
         public void SetTime(float time)

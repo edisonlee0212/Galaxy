@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using Unity.Collections;
 using Unity.Entities;
+using Unity.Transforms;
 using UnityEngine;
 namespace Galaxy
 {
@@ -48,16 +49,33 @@ namespace Galaxy
             Recalculate();
         }
 
+        Entity m_CurrentSelectedStar;
+        Vector3 m_PreviousPosition;
+        float timer;
         public void Update()
         {
             m_Galaxy.AddTime(Time.deltaTime * m_TimeSpeed);
-            
+            if (Input.GetKeyDown(KeyCode.F)) {
+                if (m_CurrentSelectedStar != m_Galaxy.StarRayCastSystem.LastResultEntity)
+                {
+                    m_CurrentSelectedStar = m_Galaxy.StarRayCastSystem.LastResultEntity;
+                    m_PreviousPosition = m_HighLight.transform.position;
+                    timer = 0f;
+                }
+            }
+            if (m_CurrentSelectedStar != Entity.Null)
+            {
+                if (timer < 1) timer += Time.deltaTime;
+                if (timer > 1) timer = 1;
+                m_HighLight.transform.position = Vector3.SlerpUnclamped(m_PreviousPosition, World.Active.EntityManager.GetComponentData<Translation>(m_CurrentSelectedStar).Value, timer);
+                //m_HighLight.transform.localScale = Vector3.one * World.Active.EntityManager.GetComponentData<Scale>(m_CurrentSelectedStar).Value * 1.01f;
+            }
         }
 
         private void FixedUpdate()
         {
             m_Galaxy.CameraRayCast();
-            m_HighLight.transform.position = m_Galaxy.CameraRayCastSystem.HitResults[0].Position;
+            
         }
         /// <summary>
         /// To recalculate the orbit, and to reset every star.

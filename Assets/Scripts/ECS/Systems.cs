@@ -183,11 +183,11 @@ namespace Galaxy
         }
 
         [BurstCompile]
-        struct CalculateStarPositionsJob : IJobForEach<StarProperties, Translation, OrbitProperties, Scale, PhysicsCollider>
+        struct CalculateStarPositionsJob : IJobForEach<StarProperties, Translation, OrbitProperties, Scale>
         {
             [ReadOnly] public float currentTime;
             [ReadOnly] public Vector3 cameraPosition;
-            public void Execute([ReadOnly] ref StarProperties c0, [WriteOnly] ref Translation c1, [ReadOnly] ref OrbitProperties c3, [ReadOnly] ref Scale c4, [ReadOnly] ref PhysicsCollider c5)
+            public void Execute([ReadOnly] ref StarProperties c0, [WriteOnly] ref Translation c1, [ReadOnly] ref OrbitProperties c3, [ReadOnly] ref Scale c4)
             {
                 float calculatedTime = c0.StartingTime + currentTime;
                 c1.Value = c3.GetPoint((c0.StartingTime + currentTime));
@@ -196,7 +196,6 @@ namespace Galaxy
                 if (distance < 200) distance = 200;
                 if (distance > 7500) distance = 7500;
                 c4.Value = c0.Mass * distance / 200;
-                //c5.Value = Unity.Physics.SphereCollider.Create(float3.zero, c4.Value);
             }
 
         }
@@ -237,21 +236,24 @@ namespace Galaxy
     [DisableAutoCreation]
     public class CameraRayCastSystem : JobComponentSystem
     {
-        private NativeArray<Unity.Physics.RaycastHit> m_HitResults;
-        private NativeArray<RaycastInput> m_Inputs;
-        private BuildPhysicsWorld m_PhysicsWorld;
+        
+        private BuildPhysicsWorld m_PhysicsWorldSystem;
         private Camera m_MainCamera;
         private RaycastInput m_RaycastInput;
+        private NativeArray<bool> m_HaveHit;
 
-        public NativeArray<Unity.Physics.RaycastHit> HitResults { get => m_HitResults; set => m_HitResults = value; }
+        private NativeArray<Unity.Physics.RaycastHit> m_HitResult;
+        private NativeArray<RaycastInput> m_Inputs;
+        private Vector3 m_SelectedStarPosition;
+        public NativeArray<Unity.Physics.RaycastHit> HitResults { get => m_HitResult; set => m_HitResult = value; }
         public NativeArray<RaycastInput> Inputs { get => m_Inputs; set => m_Inputs = value; }
+        public Vector3 SelectedStarPosition { get => m_SelectedStarPosition; set => m_SelectedStarPosition = value; }
 
         protected override void OnCreateManager()
         {
-            m_PhysicsWorld = World.Active.GetExistingSystem<BuildPhysicsWorld>();
+            m_PhysicsWorldSystem = World.Active.GetExistingSystem<BuildPhysicsWorld>();
             m_Inputs = new NativeArray<RaycastInput>(1, Allocator.Persistent);
             m_MainCamera = Camera.main;
-            Debug.Log(m_MainCamera);
             m_RaycastInput = new RaycastInput()
             {
                 Start = m_MainCamera.transform.position,
@@ -263,17 +265,16 @@ namespace Galaxy
                     GroupIndex = 0
                 }
             };
-
-
-            m_HitResults = new NativeArray<Unity.Physics.RaycastHit>(1, Allocator.Persistent);
-
+            m_HitResult = new NativeArray<Unity.Physics.RaycastHit>(1, Allocator.Persistent);
+            m_HaveHit = new NativeArray<bool>(1, Allocator.Persistent);
 
         }
 
         protected override void OnDestroyManager()
         {
-            m_HitResults.Dispose();
+            m_HitResult.Dispose();
             m_Inputs.Dispose();
+            m_HaveHit.Dispose();
         }
 
         [BurstCompile]
@@ -281,15 +282,17 @@ namespace Galaxy
         {
             [ReadOnly] public CollisionWorld world;
             [ReadOnly] public NativeArray<RaycastInput> inputs;
+            [WriteOnly] public NativeArray<bool> haveHit;
             public NativeArray<Unity.Physics.RaycastHit> results;
 
             public unsafe void Execute(int index)
             {
                 Unity.Physics.RaycastHit hit;
-                world.CastRay(inputs[index], out hit);
+                haveHit[index] = world.CastRay(inputs[index], out hit);
                 results[index] = hit;
             }
         }
+
         protected override JobHandle OnUpdate(JobHandle inputDeps)
         {
             UnityEngine.Ray ray = m_MainCamera.ScreenPointToRay(Input.mousePosition);
@@ -301,10 +304,107 @@ namespace Galaxy
             {
                 inputs = Inputs,
                 results = HitResults,
-                world = m_PhysicsWorld.PhysicsWorld.CollisionWorld
+                world = m_PhysicsWorldSystem.PhysicsWorld.CollisionWorld,
+                haveHit = m_HaveHit
             }.Schedule(Inputs.Length, 5);
             inputDeps.Complete();
+
+            if (m_HaveHit[0])
+            {
+                m_SelectedStarPosition = World.Active.EntityManager.GetComponentData<Translation>(m_PhysicsWorldSystem.PhysicsWorld.Bodies[m_HitResult[0].RigidBodyIndex].Entity).Value;
+            }
+            else
+            {
+                m_SelectedStarPosition = Vector3.zero;
+            }
             return inputDeps;
         }
     }
+
+    [DisableAutoCreation]
+    public class StarRayCastSystem : JobComponentSystem
+    {
+        #region Attributes
+        private Camera m_MainCamera;
+        private NativeQueue<Entity> m_ResultEntities;
+        private NativeQueue<float> m_Distances;
+        private Entity m_ResultEntity;
+        private Entity m_LastResultEntity;
+        private float m_MaxDistance;
+        #endregion
+
+        #region Public
+        public Entity ResultEntity { get => m_ResultEntity; set => m_ResultEntity = value; }
+        public float MaxDistance { get => m_MaxDistance; set => m_MaxDistance = value; }
+        public Entity LastResultEntity { get => m_LastResultEntity; set => m_LastResultEntity = value; }
+        #endregion
+
+        protected override void OnCreateManager()
+        {
+            MaxDistance = 5000;
+            m_ResultEntities = new NativeQueue<Entity>(Allocator.Persistent);
+            m_Distances = new NativeQueue<float>(Allocator.Persistent);
+            m_MainCamera = Camera.main;
+            m_LastResultEntity = Entity.Null;
+        }
+
+        protected override void OnDestroyManager()
+        {
+            m_ResultEntities.Dispose();
+            m_Distances.Dispose();
+        }
+
+        [BurstCompile]
+        struct CalculateStarPositionsJob : IJobForEachWithEntity<StarProperties, Translation, Scale>
+        {
+            [ReadOnly] public Vector3 Start;
+            [ReadOnly] public Vector3 End;
+            [ReadOnly] public float Distance;
+            [WriteOnly] public NativeQueue<Entity>.Concurrent ResultEntities;
+            [WriteOnly] public NativeQueue<float>.Concurrent Distances;
+            public void Execute([ReadOnly] Entity entity, [ReadOnly] int index, [ReadOnly] ref StarProperties c0, [ReadOnly] ref Translation c1, [ReadOnly] ref Scale c2)
+            {
+                if (Vector3.Distance(c1.Value, Start) <= Distance)
+                {
+                    float d = Mathf.Abs(Vector3.Dot(((Vector3)c1.Value - Start), (End - Start))) / Distance;
+                    float ap = Vector3.Distance(c1.Value, Start);
+                    if (Mathf.Sqrt(ap * ap - d * d) < c2.Value)
+                    {
+                        ResultEntities.Enqueue(entity);
+                        Distances.Enqueue(ap);
+                    }
+                }
+            }
+        }
+
+        protected override JobHandle OnUpdate(JobHandle inputDeps)
+        {
+            UnityEngine.Ray ray = m_MainCamera.ScreenPointToRay(Input.mousePosition);
+            inputDeps = new CalculateStarPositionsJob
+            {
+                Start = ray.origin,
+                End = ray.origin + ray.direction * MaxDistance,
+                Distance = MaxDistance,
+                ResultEntities = m_ResultEntities.ToConcurrent(),
+                Distances = m_Distances.ToConcurrent()
+            }.Schedule(this, inputDeps);
+            inputDeps.Complete();
+
+            m_ResultEntity = Entity.Null;
+            float min = MaxDistance;
+            while(m_Distances.Count > 0)
+            {
+                Entity e = m_ResultEntities.Dequeue();
+                float f = m_Distances.Dequeue();
+                if (f < min)
+                {
+                    min = f;
+                    m_ResultEntity = e;
+                    m_LastResultEntity = e;
+                }
+            }
+            return inputDeps;
+        }
+    }
+
 }
