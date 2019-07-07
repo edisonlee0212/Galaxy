@@ -17,13 +17,18 @@ namespace Galaxy
         private EndSimulationEntityCommandBufferSystem m_EntityCommandBufferSystem;
         private DensityWave m_DensityWave;
         private SpawnJob m_SpawnJob;
-
+        private NativeQueue<Entity> m_InsatancedEntities;
         #region Manager
         protected override void OnCreateManager()
         {
             m_EntityCommandBufferSystem = World.GetOrCreateSystem<EndSimulationEntityCommandBufferSystem>();
+            InsatancedEntities = new NativeQueue<Entity>(Allocator.Persistent);
             m_SpawnJob = new SpawnJob { };
+        }
 
+        protected override void OnDestroyManager()
+        {
+            InsatancedEntities.Dispose();
         }
 
         public void Init()
@@ -36,6 +41,7 @@ namespace Galaxy
         protected struct SpawnJob : IJobForEachWithEntity<SpawnerProperties, LocalToWorld>
         {
             public EntityCommandBuffer commandBuffer;
+            [WriteOnly] public NativeQueue<Entity>.Concurrent instancedEntities;
             [ReadOnly] public DensityWaveProperties densityWaveProperties;
 
             public void Execute(Entity entity, int index, [ReadOnly] ref SpawnerProperties c0, [ReadOnly] ref LocalToWorld c1)
@@ -43,6 +49,7 @@ namespace Galaxy
                 for (int i = 0; i < c0.Count; i++)
                 {
                     var instance = commandBuffer.Instantiate(c0.Prefab);
+                    instancedEntities.Enqueue(instance);
                     float proportion = Random.Next();
                     float mass = Random.Next();
                     var starProperties = new StarProperties
@@ -54,11 +61,17 @@ namespace Galaxy
                         HeightOffset = densityWaveProperties.GetHeightOffset(proportion),
                         Color = densityWaveProperties.GetColor(proportion)
                     };
+                    var starSystemProperties = new StarSystemProperties
+                    {
+                        Seed = proportion + mass,
+                        PlanetAmount = (int)(Random.Next() * 15)
+                    };
                     var scale = new Scale { Value = 1 };
-                    commandBuffer.AddComponent(instance, scale);
+                    commandBuffer.SetComponent(instance, scale);
                     var orbitProperties = densityWaveProperties.GetOrbit(proportion);
                     commandBuffer.SetComponent(instance, starProperties);
                     commandBuffer.SetComponent(instance, orbitProperties);
+                    commandBuffer.SetComponent(instance, starSystemProperties);
                 }
                 commandBuffer.DestroyEntity(entity);
             }
@@ -67,14 +80,73 @@ namespace Galaxy
 
         protected override JobHandle OnUpdate(JobHandle inputDeps)
         {
-            m_SpawnJob.commandBuffer = m_EntityCommandBufferSystem.CreateCommandBuffer();
-            m_SpawnJob.densityWaveProperties = m_DensityWave.DensityWaveProperties;
-            inputDeps = m_SpawnJob.ScheduleSingle(this, inputDeps);
-            m_EntityCommandBufferSystem.AddJobHandleForProducer(inputDeps);
+            SpawnStar();
             return inputDeps;
         }
 
+        public void SpawnStarECS(JobHandle inputDeps)
+        {
+            EntityCommandBuffer cmdBuffer = m_EntityCommandBufferSystem.CreateCommandBuffer();
+            m_SpawnJob = new SpawnJob
+            {
+                commandBuffer = cmdBuffer,
+                instancedEntities = InsatancedEntities.ToConcurrent()
+            };
+            m_SpawnJob.densityWaveProperties = m_DensityWave.DensityWaveProperties;
+            inputDeps = m_SpawnJob.ScheduleSingle(this, inputDeps);
+            m_EntityCommandBufferSystem.AddJobHandleForProducer(inputDeps);
+            inputDeps.Complete();
+        }
+
+        public void SpawnStar()
+        {
+            EntityQuery entityQuery = World.Active.EntityManager.CreateEntityQuery(typeof(SpawnerProperties));
+            var spawners = entityQuery.ToEntityArray(Allocator.TempJob);
+            Debug.Log(spawners);
+            Debug.Log(spawners.Length);
+            int index = 0;
+            for(int i = 0; i < spawners.Length; i++)
+            {
+                int count = World.Active.EntityManager.GetComponentData<SpawnerProperties>(spawners[i]).Count;
+                Debug.Log(count);
+                var prefab = World.Active.EntityManager.GetComponentData<SpawnerProperties>(spawners[i]).Prefab;
+                for (int j = 0; j < count; j++)
+                {
+                    var instance = World.Active.EntityManager.Instantiate(prefab);
+                    m_InsatancedEntities.Enqueue(instance);
+                    float proportion = Random.Next();
+                    float mass = Random.Next();
+                    var starProperties = new StarProperties
+                    {
+                        Mass = 0.5f + mass / 2,
+                        StartingTime = Random.Next() * 360,
+                        Index = index,
+                        Proportion = proportion,
+                        HeightOffset = m_DensityWave.DensityWaveProperties.GetHeightOffset(proportion),
+                        Color = m_DensityWave.DensityWaveProperties.GetColor(proportion)
+                    };
+                    var starSystemProperties = new StarSystemProperties
+                    {
+                        Seed = proportion + mass,
+                        PlanetAmount = (int)(Random.Next() * 10)
+                    };
+                    
+                    var scale = new Scale { Value = 1 };
+                    World.Active.EntityManager.SetComponentData(instance, scale);
+                    var orbitProperties = m_DensityWave.DensityWaveProperties.GetOrbit(proportion);
+                    World.Active.EntityManager.SetComponentData(instance, starProperties);
+                    World.Active.EntityManager.SetComponentData(instance, orbitProperties);
+                    World.Active.EntityManager.SetComponentData(instance, starSystemProperties);
+                    index++;
+                }
+                World.Active.EntityManager.DestroyEntity(spawners[i]);
+            }
+            spawners.Dispose();
+            entityQuery.Dispose();
+        }
+
         public DensityWave DensityWave { get => m_DensityWave; set => m_DensityWave = value; }
+        public NativeQueue<Entity> InsatancedEntities { get => m_InsatancedEntities; set => m_InsatancedEntities = value; }
     }
 
     [DisableAutoCreation]
@@ -130,7 +202,8 @@ namespace Galaxy
                     Debug.Log("Calculating colors");
                     for (int i = 0; i < count; i++)
                     {
-                        //TODO
+                        var star = m_Stars.Dequeue();
+                        
                     }
                 }
             }
@@ -205,7 +278,6 @@ namespace Galaxy
             [ReadOnly] public DensityWaveProperties densityWaveProperties;
             public void Execute(Entity entity, int index, [ReadOnly] ref StarProperties c0, [WriteOnly] ref OrbitProperties c1)
             {
-                c0.HeightOffset = densityWaveProperties.GetHeightOffset(c0.Proportion);
                 c0.Color = densityWaveProperties.GetColor(c0.Proportion);
                 c1 = densityWaveProperties.GetOrbit(c0.Proportion);
             }
@@ -233,10 +305,111 @@ namespace Galaxy
         public Camera MainCamera { get => m_MainCamera; set => m_MainCamera = value; }
     }
 
+
+    [DisableAutoCreation]
+    public class StarSelectionSystem : JobComponentSystem
+    {
+        #region Attributes
+        private Camera m_MainCamera;
+        private NativeQueue<Entity> m_RayCastResultEntities;
+        private NativeQueue<float> m_Distances;
+        private NativeQueue<int> m_SelectedResultEntitiesIndexList;
+        private Entity m_ResultEntity;
+        private Entity m_LastResultEntity;
+        private float m_MaxRayCastDistance;
+        private float m_MaxSelectionDistance;
+        #endregion
+
+        #region Public
+        public Entity ResultEntity { get => m_ResultEntity; set => m_ResultEntity = value; }
+        public float MaxRayCastDistance { get => m_MaxRayCastDistance; set => m_MaxRayCastDistance = value; }
+        public Entity LastResultEntity { get => m_LastResultEntity; set => m_LastResultEntity = value; }
+        public float MaxSelectionDistance { get => m_MaxSelectionDistance; set => m_MaxSelectionDistance = value; }
+        public NativeQueue<int> SelectedResultEntitiesIndexList { get => m_SelectedResultEntitiesIndexList; set => m_SelectedResultEntitiesIndexList = value; }
+        #endregion
+
+        protected override void OnCreateManager()
+        {
+            MaxRayCastDistance = 2000;
+            m_MaxSelectionDistance = 500;
+            m_RayCastResultEntities = new NativeQueue<Entity>(Allocator.Persistent);
+            SelectedResultEntitiesIndexList = new NativeQueue<int>(Allocator.Persistent);
+            m_Distances = new NativeQueue<float>(Allocator.Persistent);
+            m_MainCamera = Camera.main;
+            m_LastResultEntity = Entity.Null;
+        }
+
+        protected override void OnDestroyManager()
+        {
+            m_RayCastResultEntities.Dispose();
+            SelectedResultEntitiesIndexList.Dispose();
+            m_Distances.Dispose();
+        }
+
+        [BurstCompile]
+        struct CalculateStarPositionsJob : IJobForEachWithEntity<StarProperties, Translation, Scale>
+        {
+            [ReadOnly] public Vector3 Start;
+            [ReadOnly] public Vector3 End;
+            [ReadOnly] public float RayCastDistance;
+            [ReadOnly] public float SelectionDistance;
+            [WriteOnly] public NativeQueue<Entity>.Concurrent RayCastResultEntities;
+            [WriteOnly] public NativeQueue<float>.Concurrent RayCastDistances;
+            [WriteOnly] public NativeQueue<int>.Concurrent SelectionResultEntities;
+            public void Execute([ReadOnly] Entity entity, [ReadOnly] int index, [ReadOnly] ref StarProperties c0, [ReadOnly] ref Translation c1, [ReadOnly] ref Scale c2)
+            {
+                if (Vector3.Distance(c1.Value, Start) <= RayCastDistance)
+                {
+                    if (Vector3.Distance(c1.Value, Start) <= SelectionDistance && Vector3.Angle(End - Start, (Vector3)c1.Value - Start) < 70) SelectionResultEntities.Enqueue(c0.Index);
+                    float d = Mathf.Abs(Vector3.Dot(((Vector3)c1.Value - Start), (End - Start))) / RayCastDistance;
+                    float ap = Vector3.Distance(c1.Value, Start);
+                    if (Mathf.Sqrt(ap * ap - d * d) < c2.Value)
+                    {
+                        RayCastResultEntities.Enqueue(entity);
+                        RayCastDistances.Enqueue(ap);
+                    }
+                }
+            }
+        }
+
+        protected override JobHandle OnUpdate(JobHandle inputDeps)
+        {
+
+            SelectedResultEntitiesIndexList.Clear();
+            UnityEngine.Ray ray = m_MainCamera.ScreenPointToRay(Input.mousePosition);
+            inputDeps = new CalculateStarPositionsJob
+            {
+                Start = ray.origin,
+                End = ray.origin + ray.direction * m_MaxRayCastDistance,
+                RayCastDistance = m_MaxRayCastDistance,
+                SelectionDistance = m_MaxSelectionDistance,
+                RayCastResultEntities = m_RayCastResultEntities.ToConcurrent(),
+                RayCastDistances = m_Distances.ToConcurrent(),
+                SelectionResultEntities = SelectedResultEntitiesIndexList.ToConcurrent()
+            }.Schedule(this, inputDeps);
+            inputDeps.Complete();
+
+            m_ResultEntity = Entity.Null;
+            float min = MaxRayCastDistance;
+            while(m_Distances.Count > 0)
+            {
+                Entity e = m_RayCastResultEntities.Dequeue();
+                float f = m_Distances.Dequeue();
+                if (f < min)
+                {
+                    min = f;
+                    m_ResultEntity = e;
+                    m_LastResultEntity = e;
+                }
+            }
+            return inputDeps;
+        }
+    }
+
     [DisableAutoCreation]
     public class CameraRayCastSystem : JobComponentSystem
     {
-        
+
         private BuildPhysicsWorld m_PhysicsWorldSystem;
         private Camera m_MainCamera;
         private RaycastInput m_RaycastInput;
@@ -316,92 +489,6 @@ namespace Galaxy
             else
             {
                 m_SelectedStarPosition = Vector3.zero;
-            }
-            return inputDeps;
-        }
-    }
-
-    [DisableAutoCreation]
-    public class StarRayCastSystem : JobComponentSystem
-    {
-        #region Attributes
-        private Camera m_MainCamera;
-        private NativeQueue<Entity> m_ResultEntities;
-        private NativeQueue<float> m_Distances;
-        private Entity m_ResultEntity;
-        private Entity m_LastResultEntity;
-        private float m_MaxDistance;
-        #endregion
-
-        #region Public
-        public Entity ResultEntity { get => m_ResultEntity; set => m_ResultEntity = value; }
-        public float MaxDistance { get => m_MaxDistance; set => m_MaxDistance = value; }
-        public Entity LastResultEntity { get => m_LastResultEntity; set => m_LastResultEntity = value; }
-        #endregion
-
-        protected override void OnCreateManager()
-        {
-            MaxDistance = 5000;
-            m_ResultEntities = new NativeQueue<Entity>(Allocator.Persistent);
-            m_Distances = new NativeQueue<float>(Allocator.Persistent);
-            m_MainCamera = Camera.main;
-            m_LastResultEntity = Entity.Null;
-        }
-
-        protected override void OnDestroyManager()
-        {
-            m_ResultEntities.Dispose();
-            m_Distances.Dispose();
-        }
-
-        [BurstCompile]
-        struct CalculateStarPositionsJob : IJobForEachWithEntity<StarProperties, Translation, Scale>
-        {
-            [ReadOnly] public Vector3 Start;
-            [ReadOnly] public Vector3 End;
-            [ReadOnly] public float Distance;
-            [WriteOnly] public NativeQueue<Entity>.Concurrent ResultEntities;
-            [WriteOnly] public NativeQueue<float>.Concurrent Distances;
-            public void Execute([ReadOnly] Entity entity, [ReadOnly] int index, [ReadOnly] ref StarProperties c0, [ReadOnly] ref Translation c1, [ReadOnly] ref Scale c2)
-            {
-                if (Vector3.Distance(c1.Value, Start) <= Distance)
-                {
-                    float d = Mathf.Abs(Vector3.Dot(((Vector3)c1.Value - Start), (End - Start))) / Distance;
-                    float ap = Vector3.Distance(c1.Value, Start);
-                    if (Mathf.Sqrt(ap * ap - d * d) < c2.Value)
-                    {
-                        ResultEntities.Enqueue(entity);
-                        Distances.Enqueue(ap);
-                    }
-                }
-            }
-        }
-
-        protected override JobHandle OnUpdate(JobHandle inputDeps)
-        {
-            UnityEngine.Ray ray = m_MainCamera.ScreenPointToRay(Input.mousePosition);
-            inputDeps = new CalculateStarPositionsJob
-            {
-                Start = ray.origin,
-                End = ray.origin + ray.direction * MaxDistance,
-                Distance = MaxDistance,
-                ResultEntities = m_ResultEntities.ToConcurrent(),
-                Distances = m_Distances.ToConcurrent()
-            }.Schedule(this, inputDeps);
-            inputDeps.Complete();
-
-            m_ResultEntity = Entity.Null;
-            float min = MaxDistance;
-            while(m_Distances.Count > 0)
-            {
-                Entity e = m_ResultEntities.Dequeue();
-                float f = m_Distances.Dequeue();
-                if (f < min)
-                {
-                    min = f;
-                    m_ResultEntity = e;
-                    m_LastResultEntity = e;
-                }
             }
             return inputDeps;
         }

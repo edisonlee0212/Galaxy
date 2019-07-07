@@ -6,90 +6,90 @@ using Unity.Transforms;
 using UnityEngine;
 namespace Galaxy
 {
+    public enum ViewType
+    {
+        Galaxy = 1,
+        StarSystem = 2,
+        Planet = 3
+    }
     public class Game : MonoBehaviour
     {
         [SerializeField]
-        private GameObject m_HighLight;
-
+        private CameraControl m_CameraControl;
         [SerializeField]
-        private Nebulas m_Nebulas;
-
+        private GalaxySystem m_GalaxySystem;
         [SerializeField]
-        private OrbitObject m_OrbitPrefab;
-
+        private Orbit m_OrbitPrefab;
         [SerializeField]
         private int m_OrbitsAmount;
-
         [SerializeField]
         private DensityWaveProperties m_DensityWaveProperties;
 
         private bool m_DisplayOrbits;
-        private List<OrbitObject> m_OrbitObjects;
+        private List<Orbit> m_OrbitObjects;
         private DensityWave m_DensityWave;
         private float m_TimeSpeed;
         private bool m_Running = true;
-        private GalaxySystem m_Galaxy;
+        
+        private Entity m_CurrentSelectedStar;
+        private ViewType m_ViewType;
         // Start is called before the first frame update
         void Start()
         {
+            m_GalaxySystem.Init(m_DensityWaveProperties);
             m_TimeSpeed = 0.01f;
             Debug.Assert(m_OrbitsAmount <= 100 && m_OrbitsAmount >= 10);
-            m_Galaxy = new GalaxySystem(m_DensityWaveProperties);
-            m_Galaxy.NebulasSystem = m_Nebulas;
-            m_Galaxy.Init();
             
-            m_OrbitObjects = new List<OrbitObject>();
-            for(int i = 0; i < m_OrbitsAmount; i++)
+            m_ViewType = ViewType.Galaxy;
+            m_OrbitObjects = new List<Orbit>();
+            for (int i = 0; i < m_OrbitsAmount; i++)
             {
-                OrbitObject instance = Instantiate(m_OrbitPrefab, transform);
+                Orbit instance = Instantiate(m_OrbitPrefab, transform);
                 instance.gameObject.SetActive(false);
                 m_OrbitObjects.Add(instance);
             }
-            m_DensityWave = m_Galaxy.DensityWave;
+            m_DensityWave = m_GalaxySystem.DensityWave;
             Recalculate();
         }
 
-        Entity m_CurrentSelectedStar;
-        Vector3 m_PreviousPosition;
-        float timer;
+
         public void Update()
         {
-            m_Galaxy.AddTime(Time.deltaTime * m_TimeSpeed);
-            if (Input.GetKeyDown(KeyCode.F)) {
-                if (m_CurrentSelectedStar != m_Galaxy.StarRayCastSystem.LastResultEntity)
+            if (Input.GetKeyDown(KeyCode.F))
+            {
+                if (m_CurrentSelectedStar != m_GalaxySystem.Galaxy.StarSelectionSystem.LastResultEntity)
                 {
-                    m_CurrentSelectedStar = m_Galaxy.StarRayCastSystem.LastResultEntity;
-                    m_PreviousPosition = m_HighLight.transform.position;
-                    timer = 0f;
+                    m_ViewType = ViewType.StarSystem;
+                    m_CurrentSelectedStar = m_GalaxySystem.Galaxy.StarSelectionSystem.LastResultEntity;
+                    m_CameraControl.Follow(m_GalaxySystem.StarSystems[World.Active.EntityManager.GetComponentData<StarProperties>(m_CurrentSelectedStar).Index].gameObject);
                 }
             }
-            if (m_CurrentSelectedStar != Entity.Null)
+            if (Input.GetKeyDown(KeyCode.G))
             {
-                if (timer < 1) timer += Time.deltaTime;
-                if (timer > 1) timer = 1;
-                m_HighLight.transform.position = Vector3.SlerpUnclamped(m_PreviousPosition, World.Active.EntityManager.GetComponentData<Translation>(m_CurrentSelectedStar).Value, timer);
-                //m_HighLight.transform.localScale = Vector3.one * World.Active.EntityManager.GetComponentData<Scale>(m_CurrentSelectedStar).Value * 1.01f;
+                m_ViewType = ViewType.Galaxy;
+                m_CameraControl.UnFollow();
             }
+
         }
 
         private void FixedUpdate()
         {
-            m_Galaxy.CameraRayCast();
-            
+            m_GalaxySystem.AddTime(Time.deltaTime * m_TimeSpeed);
+            m_GalaxySystem.Update();
         }
         /// <summary>
         /// To recalculate the orbit, and to reset every star.
         /// </summary>
         public void Recalculate()
         {
-            m_Galaxy.StarPositionCalculationSystem.CalculateOrbit = true;
-            for(int i = 0; i < m_OrbitsAmount; i++)
+            m_GalaxySystem.Galaxy.StarPositionCalculationSystem.CalculateOrbit = true;
+            for (int i = 0; i < m_OrbitsAmount; i++)
             {
                 m_OrbitObjects[i].orbit = m_DensityWave.GetOrbit((float)i / (m_OrbitsAmount - 1));
                 m_OrbitObjects[i].CalculateEllipse();
                 m_OrbitObjects[i].gameObject.SetActive(m_DisplayOrbits);
             }
-            m_Galaxy.AddTime(0);
+            m_GalaxySystem.SetTime(m_GalaxySystem.Galaxy.Time);
         }
 
         #region Properties setters
@@ -186,7 +186,7 @@ namespace Galaxy
         public void SetTimeSpeed(float speed)
         {
             m_TimeSpeed = speed;
-            if(speed == 0)
+            if (speed == 0)
             {
                 m_Running = false;
             }
@@ -196,6 +196,6 @@ namespace Galaxy
             }
         }
         #endregion
-        
+
     }
 }

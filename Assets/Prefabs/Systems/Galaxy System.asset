@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 0}
+  m_Name: Galaxy System
+  m_EditorClassIdentifier: Assembly-CSharp:Galaxy:GalaxySystem
+  m_StarSystemPrefab: {fileID: 1945863086889835417, guid: f64d49b0b0362aa499fb849cfd134e79,
+    type: 3}
+  m_NebulasSystem: {fileID: 11400000, guid: da1268086b333d8418e93f82e7e2924a, type: 2}
+  m_StarSystemsHolder: {fileID: 6128225108312629258, guid: 6e4a498564c37ae45bca499154128294,
+    type: 3}

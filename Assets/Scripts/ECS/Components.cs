@@ -47,6 +47,13 @@ namespace Galaxy
     }
 
     [Serializable]
+    public struct StarSystemProperties : IComponentData
+    {
+        public float Seed;
+        public int PlanetAmount;
+    }
+
+    [Serializable]
     public struct OrbitProperties : IComponentData
     {
         #region Public
