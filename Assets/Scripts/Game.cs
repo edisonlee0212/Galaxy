@@ -61,21 +61,22 @@ namespace Galaxy
                 {
                     m_ViewType = ViewType.StarSystem;
                     m_CurrentSelectedStar = m_GalaxySystem.Galaxy.StarSelectionSystem.LastResultEntity;
-                    m_CameraControl.Follow(m_GalaxySystem.StarSystems[World.Active.EntityManager.GetComponentData<StarProperties>(m_CurrentSelectedStar).Index].gameObject);
+                    m_GalaxySystem.FocusOnStar(m_CurrentSelectedStar);
+                    m_CameraControl.Follow(m_CurrentSelectedStar);
                 }
             }
             if (Input.GetKeyDown(KeyCode.G))
             {
                 m_ViewType = ViewType.Galaxy;
+                m_GalaxySystem.FocusOnStar(Entity.Null);
                 m_CameraControl.UnFollow();
             }
+            m_GalaxySystem.AddTime(Time.fixedDeltaTime * m_TimeSpeed);
 
         }
 
         private void FixedUpdate()
         {
-            m_GalaxySystem.AddTime(Time.deltaTime * m_TimeSpeed);
-            m_GalaxySystem.Update();
         }
         /// <summary>
         /// To recalculate the orbit, and to reset every star.

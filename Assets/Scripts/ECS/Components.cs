@@ -10,6 +10,23 @@ using UnityEngine;
 namespace Galaxy
 {
     [Serializable]
+    public struct CustomRenderMesh : ISharedComponentData, IEquatable<CustomRenderMesh>
+    {
+        public Mesh Mesh;
+        public Material Material;
+
+        public bool Equals(CustomRenderMesh other)
+        {
+            if (Mesh == other.Mesh && Material == other.Material) return true;
+            return false;
+        }
+        public override int GetHashCode()
+        {
+            return base.GetHashCode();
+        }
+    }
+
+    [Serializable]
     public struct SpawnerProperties : IComponentData
     {
         public Entity Prefab;
@@ -43,7 +60,24 @@ namespace Galaxy
         /// Color of the surface of the star
         /// </summary>
         public Color Color;
-        
+    }
+
+    [Serializable]
+    public struct CustomCullingStat : IComponentData
+    {
+        public bool Culled;
+    }
+
+    [Serializable]
+    public struct DrawTag : IComponentData
+    {
+
+    }
+
+    [Serializable]
+    public struct CustomColor : IComponentData
+    {
+        public Vector4 Color;
     }
 
     [Serializable]
@@ -93,6 +127,12 @@ namespace Galaxy
             point.z += centerPosition.z;
             return point;
         }
+    }
+
+    [Serializable]
+    public struct PlanetProperties : IComponentData
+    {
+        public float StartTime;
     }
 
     [Serializable]
@@ -176,12 +216,12 @@ namespace Galaxy
             {
                 //If the wave is outside the disk;
                 float actualProportion = (proportion - CoreProportion) / (1 - CoreProportion);
-                color = CoreColor + (DiskColor - CoreColor) * actualProportion;
+                color = CoreColor * (1 - actualProportion) + DiskColor * actualProportion;
             }
             else
             {
                 float actualProportion = proportion / CoreProportion;
-                color = (CoreColor - CenterColor) * actualProportion + CenterColor;
+                color = CoreColor * actualProportion + CenterColor * (1 - actualProportion);
             }
             return color;
         }
