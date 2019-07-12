@@ -8,7 +8,7 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Planet
-  m_Shader: {fileID: 4800000, guid: c26b7e2a702195a4d9a7b9d947d3a659, type: 3}
+  m_Shader: {fileID: 4800000, guid: a14d2ab268b2d87478902415c1d39756, type: 3}
   m_ShaderKeywords: _GLOSSYREFLECTIONS_OFF _SPECULARHIGHLIGHTS_OFF
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 1
@@ -73,5 +73,5 @@ Material:
     - _UVSec: 0
     - _ZWrite: 1
     m_Colors:
-    - _Color: {r: 1, g: 0, b: 0, a: 0.50980395}
+    - _Color: {r: 1, g: 1, b: 1, a: 0.50980395}
     - _EmissionColor: {r: 0, g: 1, b: 0.14668608, a: 1}

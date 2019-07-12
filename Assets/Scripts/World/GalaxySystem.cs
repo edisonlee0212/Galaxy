@@ -32,8 +32,10 @@ namespace Galaxy
         private Material m_PlanetMaterial;
         [SerializeField]
         private int m_StarAmount;
+        [SerializeField]
+        private Light m_Light;
 
-
+        private CameraControl m_CameraControl;
         private DensityWave m_DensityWave;
         private Galaxy m_Galaxy;
         private StarSystem[] m_StarSystems;
@@ -42,7 +44,8 @@ namespace Galaxy
         public DensityWave DensityWave { get => m_DensityWave; set => m_DensityWave = value; }
         public Galaxy Galaxy { get => m_Galaxy; set => m_Galaxy = value; }
         public StarSystem[] StarSystems { get => m_StarSystems; set => m_StarSystems = value; }
-        
+        public CameraControl CameraControl { get => m_CameraControl; set => m_CameraControl = value; }
+
         Scene m_StarSystemScene;
 
         public void Init(DensityWaveProperties m_DensityWaveProperties)
@@ -50,9 +53,9 @@ namespace Galaxy
             
             //Create density wave
             DensityWave = new DensityWave(m_DensityWaveProperties);
-
+            Light light = Instantiate(m_Light);
             //Create galaxy system
-            Galaxy = new Galaxy(DensityWave, m_StarMesh, m_StarMaterial, m_PlanetMesh, m_PlanetMaterial, m_StarAmount);
+            Galaxy = new Galaxy(DensityWave, m_StarMesh, m_StarMaterial, m_PlanetMesh, m_PlanetMaterial, m_StarAmount, m_CameraControl, light);
             Galaxy.Init();
 
             //Create nebula system
@@ -101,7 +104,7 @@ namespace Galaxy
         public Material Material { get => m_StarMaterial; set => m_StarMaterial = value; }
         public Mesh StarMesh { get => m_StarMesh; set => m_StarMesh = value; }
 
-        public Galaxy(DensityWave densityWave, Mesh starMesh, Material starMaterial, Mesh planetMesh, Material planetMaterial, int starAmount)
+        public Galaxy(DensityWave densityWave, Mesh starMesh, Material starMaterial, Mesh planetMesh, Material planetMaterial, int starAmount, CameraControl cameraControl, Light light)
         {
             m_StarAmount = starAmount;
             m_StarMaterial = starMaterial;
@@ -114,6 +117,9 @@ namespace Galaxy
             m_StarEngineSystem = World.Active.GetOrCreateSystem<StarEngine>();
             m_StarRenderSystem = World.Active.GetOrCreateSystem<StarRenderSystem>();
             m_PlanetRendererSystem = World.Active.GetOrCreateSystem<PlanetRendererSystem>();
+
+            m_StarSelectionSystem.CameraControl = cameraControl;
+            m_StarSelectionSystem.Light = light;
 
             m_StarPositionCalculationSystem.DensityWave = m_DensityWave;
             m_StarEngineSystem.DensityWave = m_DensityWave;

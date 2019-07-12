@@ -6,12 +6,7 @@ using Unity.Transforms;
 using UnityEngine;
 namespace Galaxy
 {
-    public enum ViewType
-    {
-        Galaxy = 1,
-        StarSystem = 2,
-        Planet = 3
-    }
+    
     public class Game : MonoBehaviour
     {
         [SerializeField]
@@ -25,6 +20,8 @@ namespace Galaxy
         [SerializeField]
         private DensityWaveProperties m_DensityWaveProperties;
 
+
+
         private bool m_DisplayOrbits;
         private List<Orbit> m_OrbitObjects;
         private DensityWave m_DensityWave;
@@ -32,15 +29,15 @@ namespace Galaxy
         private bool m_Running = true;
         
         private Entity m_CurrentSelectedStar;
-        private ViewType m_ViewType;
+        
         // Start is called before the first frame update
         void Start()
         {
+            m_GalaxySystem.CameraControl = m_CameraControl;
             m_GalaxySystem.Init(m_DensityWaveProperties);
+
             m_TimeSpeed = 0.01f;
             Debug.Assert(m_OrbitsAmount <= 100 && m_OrbitsAmount >= 10);
-            
-            m_ViewType = ViewType.Galaxy;
             m_OrbitObjects = new List<Orbit>();
             for (int i = 0; i < m_OrbitsAmount; i++)
             {
@@ -55,22 +52,7 @@ namespace Galaxy
 
         public void Update()
         {
-            if (Input.GetKeyDown(KeyCode.F))
-            {
-                if (m_CurrentSelectedStar != m_GalaxySystem.Galaxy.StarSelectionSystem.LastResultEntity)
-                {
-                    m_ViewType = ViewType.StarSystem;
-                    m_CurrentSelectedStar = m_GalaxySystem.Galaxy.StarSelectionSystem.LastResultEntity;
-                    m_GalaxySystem.FocusOnStar(m_CurrentSelectedStar);
-                    m_CameraControl.Follow(m_CurrentSelectedStar);
-                }
-            }
-            if (Input.GetKeyDown(KeyCode.G))
-            {
-                m_ViewType = ViewType.Galaxy;
-                m_GalaxySystem.FocusOnStar(Entity.Null);
-                m_CameraControl.UnFollow();
-            }
+            
             m_GalaxySystem.AddTime(Time.fixedDeltaTime * m_TimeSpeed);
 
         }

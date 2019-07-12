@@ -91,11 +91,11 @@ namespace Galaxy
                 //m_Camera.transform.LookAt(position);
             }
 
-            if (Input.GetKey(KeyCode.LeftControl)) moveSpeed = 0.5f * m_DefaultCameraMoveSpeed;
+            if (Input.GetKey(KeyCode.LeftControl)) moveSpeed = 0.01f * m_DefaultCameraMoveSpeed;
             else if (Input.GetKey(KeyCode.LeftShift)) moveSpeed = 2 * m_DefaultCameraMoveSpeed;
             else moveSpeed = m_DefaultCameraMoveSpeed;
-            if (Input.GetMouseButtonDown(0)) isRotating = true;
-            if (Input.GetMouseButtonUp(0)) isRotating = false;
+            if (Input.GetMouseButtonDown(1)) isRotating = true;
+            if (Input.GetMouseButtonUp(1)) isRotating = false;
             if (Input.GetMouseButtonDown(2)) isPanning = true;
             if (Input.GetMouseButtonUp(2)) isPanning = false;
             if (isRotating)
