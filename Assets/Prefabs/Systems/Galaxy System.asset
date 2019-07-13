@@ -23,3 +23,5 @@ MonoBehaviour:
   m_PlanetMaterial: {fileID: 2100000, guid: e213fc34e45027041a4d39ba207d2d13, type: 2}
   m_StarAmount: 70000
   m_Light: {fileID: 4496016142793240934, guid: c5c0489c1deaf924ea5c6a2f22691245, type: 3}
+  m_PlanetOrbits: {fileID: 5298659160241683731, guid: 321cda228d49c47408b807296cb89538,
+    type: 3}
