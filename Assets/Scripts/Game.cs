@@ -6,9 +6,9 @@ using Unity.Transforms;
 using UnityEngine;
 namespace Galaxy
 {
-    
     public class Game : MonoBehaviour
     {
+        #region Attributes
         [SerializeField]
         private CameraControl m_CameraControl;
         [SerializeField]
@@ -18,17 +18,17 @@ namespace Galaxy
         [SerializeField]
         private int m_OrbitsAmount;
         [SerializeField]
-        private DensityWaveProperties m_DensityWaveProperties;
-
+        private GalaxyPatternProperties m_DensityWaveProperties;
+        [SerializeField]
+        private Settings m_Settings;
+        #endregion
 
 
         private bool m_DisplayOrbits;
         private List<Orbit> m_OrbitObjects;
-        private DensityWave m_DensityWave;
+        private GalaxyPattern m_DensityWave;
         private float m_TimeSpeed;
         private bool m_Running = true;
-        
-        private Entity m_CurrentSelectedStar;
         
         // Start is called before the first frame update
         void Start()
@@ -45,26 +45,22 @@ namespace Galaxy
                 m_OrbitObjects.Add(instance);
             }
             m_DensityWave = m_GalaxySystem.DensityWave;
+            m_Settings.Init(m_GalaxySystem.DensityWave.DensityWaveProperties, m_TimeSpeed, m_DisplayOrbits);
             Recalculate();
         }
 
-
         public void Update()
         {
-            
             m_GalaxySystem.AddTime(Time.fixedDeltaTime * m_TimeSpeed);
-
         }
 
-        private void FixedUpdate()
-        {
-        }
+        #region Methods
         /// <summary>
         /// To recalculate the orbit, and to reset every star.
         /// </summary>
         public void Recalculate()
         {
-            m_GalaxySystem.Galaxy.StarPositionCalculationSystem.CalculateOrbit = true;
+            m_GalaxySystem.Galaxy.StarPositionSimulationSystem.CalculateOrbit = true;
             for (int i = 0; i < m_OrbitsAmount; i++)
             {
                 m_OrbitObjects[i].orbit = m_DensityWave.GetOrbit((float)i / (m_OrbitsAmount - 1));
@@ -74,7 +70,6 @@ namespace Galaxy
             m_GalaxySystem.SetTime(m_GalaxySystem.Galaxy.Time);
         }
 
-        #region Properties setters
         public void SetRotation(float rotation)
         {
             m_DensityWave.SetRotation(rotation);

@@ -11,8 +11,8 @@ namespace Galaxy
         private GameObject m_MeshVertexParticleSystemPrefab;
 
         private List<GameObject> m_MeshVertexParticleSystems;
-        private DensityWave m_DensityWave;
-        public DensityWave DensityWave { get => m_DensityWave; set => m_DensityWave = value; }
+        private GalaxyPattern m_DensityWave;
+        public GalaxyPattern DensityWave { get => m_DensityWave; set => m_DensityWave = value; }
 
         private float m_Time;
         private List<float[]> m_MeshVertexStartTimes;

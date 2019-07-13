@@ -136,7 +136,7 @@ namespace Galaxy
     }
 
     [Serializable]
-    public struct DensityWaveProperties
+    public struct GalaxyPatternProperties
     {
         #region public
         public float DiskA;

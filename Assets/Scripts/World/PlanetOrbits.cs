@@ -33,7 +33,6 @@ namespace Galaxy
             m_StarEntity = starEntity;
             m_StarProperties = World.Active.EntityManager.GetComponentData<StarProperties>(m_StarEntity);
             m_StarSystemProperties = World.Active.EntityManager.GetComponentData<StarSystemProperties>(m_StarEntity);
-            Debug.Log(m_StarProperties.Mass);
             for (int i = 0; i < m_StarSystemProperties.PlanetAmount; i++)
             {
                 m_Orbits[i].orbit = new OrbitProperties

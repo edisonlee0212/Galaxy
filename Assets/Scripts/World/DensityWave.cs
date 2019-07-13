@@ -3,14 +3,14 @@ using System.Collections.Generic;
 using UnityEngine;
 namespace Galaxy
 {
-    public class DensityWave
+    public class GalaxyPattern
     {
-        public DensityWaveProperties properties;
+        public GalaxyPatternProperties properties;
 
-        public DensityWaveProperties DensityWaveProperties { get => properties; set => properties = value; }
+        public GalaxyPatternProperties DensityWaveProperties { get => properties; set => properties = value; }
 
         #region Properties setters
-        public void SetDensityWaveProperties(DensityWaveProperties densityWaveProperties)
+        public void SetDensityWaveProperties(GalaxyPatternProperties densityWaveProperties)
         {
             DensityWaveProperties = densityWaveProperties;
             SetCoreACoreB();
@@ -101,7 +101,7 @@ namespace Galaxy
             return properties.GetOrbit(proportion);
         }
 
-        public DensityWave(DensityWaveProperties densityWaveProperties)
+        public GalaxyPattern(GalaxyPatternProperties densityWaveProperties)
         {
             SetDensityWaveProperties(densityWaveProperties);
         }

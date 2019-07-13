@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
-  m_IndirectSpecularColor: {r: 0.23236844, g: 0.23554417, b: 0.27230176, a: 1}
+  m_IndirectSpecularColor: {r: 0, g: 0, b: 0, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -1541,9 +1541,9 @@ MonoBehaviour:
   m_HandleRect: {fileID: 2049858226}
   m_Direction: 0
   m_MinValue: 0
-  m_MaxValue: 100
+  m_MaxValue: 10000
   m_WholeNumbers: 0
-  m_Value: 5
+  m_Value: 0
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls:
@@ -2479,9 +2479,9 @@ MonoBehaviour:
   m_HandleRect: {fileID: 1805093910}
   m_Direction: 0
   m_MinValue: 0
-  m_MaxValue: 20
+  m_MaxValue: 40
   m_WholeNumbers: 0
-  m_Value: 1
+  m_Value: 0
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls:
@@ -4422,9 +4422,9 @@ MonoBehaviour:
   m_HandleRect: {fileID: 1690588633}
   m_Direction: 0
   m_MinValue: 1
-  m_MaxValue: 10000
+  m_MaxValue: 40000
   m_WholeNumbers: 0
-  m_Value: 3000
+  m_Value: 1
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls:
@@ -5318,7 +5318,7 @@ MonoBehaviour:
   m_MinValue: 0.001
   m_MaxValue: 0.999
   m_WholeNumbers: 0
-  m_Value: 0.6
+  m_Value: 0.001
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls:
@@ -6194,9 +6194,9 @@ MonoBehaviour:
   m_HandleRect: {fileID: 833241805}
   m_Direction: 0
   m_MinValue: 0
-  m_MaxValue: 20
+  m_MaxValue: 40
   m_WholeNumbers: 0
-  m_Value: 1
+  m_Value: 0
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls:
@@ -6812,9 +6812,9 @@ MonoBehaviour:
   m_HandleRect: {fileID: 38875798}
   m_Direction: 0
   m_MinValue: 1
-  m_MaxValue: 10000
+  m_MaxValue: 40000
   m_WholeNumbers: 0
-  m_Value: 3000
+  m_Value: 4
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls:
@@ -7038,6 +7038,7 @@ MonoBehaviour:
       x: 0
       y: 0
       z: 0
+  m_Settings: {fileID: 2003935353}
 --- !u!1 &1407004220
 GameObject:
   m_ObjectHideFlags: 0
@@ -7197,7 +7198,7 @@ MonoBehaviour:
   m_MinValue: 0
   m_MaxValue: 2
   m_WholeNumbers: 0
-  m_Value: 0.01
+  m_Value: 0
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls:
@@ -7935,7 +7936,7 @@ MonoBehaviour:
   m_MinValue: 0.001
   m_MaxValue: 0.999
   m_WholeNumbers: 0
-  m_Value: 0.3
+  m_Value: 0.001
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls:
@@ -8372,9 +8373,9 @@ MonoBehaviour:
   m_HandleRect: {fileID: 343354561}
   m_Direction: 0
   m_MinValue: 0
-  m_MaxValue: 20
+  m_MaxValue: 40
   m_WholeNumbers: 0
-  m_Value: 1
+  m_Value: 0
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls:
@@ -9055,7 +9056,7 @@ MonoBehaviour:
   m_MinValue: 0
   m_MaxValue: 1080
   m_WholeNumbers: 0
-  m_Value: 360
+  m_Value: 0
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls:
@@ -10145,7 +10146,7 @@ GameObject:
   - component: {fileID: 2003935354}
   - component: {fileID: 2003935353}
   m_Layer: 0
-  m_Name: CanvasControl
+  m_Name: Settings
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

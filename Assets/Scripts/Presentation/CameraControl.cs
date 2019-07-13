@@ -30,6 +30,8 @@ namespace Galaxy
         private Quaternion m_PreviousCameraLocalRotation;
         private ViewType m_ViewType;
         public float TransitionTimer { get => m_TransitionTime; set => m_TransitionTime = value; }
+        public float DefaultCameraLookSpeed { get => m_DefaultCameraLookSpeed; set => m_DefaultCameraLookSpeed = value; }
+        public float DefaultCameraMoveSpeed { get => m_DefaultCameraMoveSpeed; set => m_DefaultCameraMoveSpeed = value; }
 
         public void SetCameraRotationX(float x)
         {
@@ -91,22 +93,22 @@ namespace Galaxy
                 //m_Camera.transform.LookAt(position);
             }
 
-            if (Input.GetKey(KeyCode.LeftControl)) moveSpeed = 0.01f * m_DefaultCameraMoveSpeed;
-            else if (Input.GetKey(KeyCode.LeftShift)) moveSpeed = 2 * m_DefaultCameraMoveSpeed;
-            else moveSpeed = m_DefaultCameraMoveSpeed;
+            if (Input.GetKey(KeyCode.LeftControl)) moveSpeed = 0.01f * DefaultCameraMoveSpeed;
+            else if (Input.GetKey(KeyCode.LeftShift)) moveSpeed = 2 * DefaultCameraMoveSpeed;
+            else moveSpeed = DefaultCameraMoveSpeed;
             if (Input.GetMouseButtonDown(1)) isRotating = true;
             if (Input.GetMouseButtonUp(1)) isRotating = false;
             if (Input.GetMouseButtonDown(2)) isPanning = true;
             if (Input.GetMouseButtonUp(2)) isPanning = false;
             if (isRotating)
             {
-                m_Camera.transform.Rotate(-Input.GetAxis("Mouse Y") * m_DefaultCameraLookSpeed, Input.GetAxis("Mouse X") * m_DefaultCameraLookSpeed, 0);
+                m_Camera.transform.Rotate(-Input.GetAxis("Mouse Y") * DefaultCameraLookSpeed, Input.GetAxis("Mouse X") * DefaultCameraLookSpeed, 0);
             }
 
             if (isPanning)
             {
-                m_Camera.transform.localPosition -= m_Camera.transform.right * moveSpeed * Input.GetAxis("Mouse X") * m_DefaultCameraLookSpeed;
-                m_Camera.transform.localPosition -= m_Camera.transform.up * moveSpeed * Input.GetAxis("Mouse Y") * m_DefaultCameraLookSpeed;
+                m_Camera.transform.localPosition -= m_Camera.transform.right * moveSpeed * Input.GetAxis("Mouse X") * DefaultCameraLookSpeed;
+                m_Camera.transform.localPosition -= m_Camera.transform.up * moveSpeed * Input.GetAxis("Mouse Y") * DefaultCameraLookSpeed;
             }
             m_Camera.transform.localPosition += m_Camera.transform.forward * moveSpeed * Input.GetAxis("Vertical");
             m_Camera.transform.localPosition += m_Camera.transform.right * moveSpeed * Input.GetAxis("Horizontal");

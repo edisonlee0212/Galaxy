@@ -35,12 +35,12 @@ namespace Galaxy
 
         #region Public
         private Camera m_MainCamera;
-        private DensityWave m_DensityWave;
+        private GalaxyPattern m_DensityWave;
         private bool m_CalculateOrbit;
         private float m_SimulatedTime;
         private StarPositionsJob calculateStarPositionsJob;
         private StarOrbitJob calculateStarOrbitJob;
-        public DensityWave DensityWave { get => m_DensityWave; set => m_DensityWave = value; }
+        public GalaxyPattern DensityWave { get => m_DensityWave; set => m_DensityWave = value; }
         public bool CalculateOrbit { get => m_CalculateOrbit; set => m_CalculateOrbit = value; }
         public Camera MainCamera { get => m_MainCamera; set => m_MainCamera = value; }
         public float SimulatedTime { get => m_SimulatedTime; set => m_SimulatedTime = value; }
@@ -78,7 +78,7 @@ namespace Galaxy
         {
             [ReadOnly] public float currentTime;
             [ReadOnly] public Vector3 cameraPosition;
-            [ReadOnly] public DensityWaveProperties properties;
+            [ReadOnly] public GalaxyPatternProperties properties;
             public void Execute([ReadOnly] ref StarProperties c0, [WriteOnly] ref Translation c1, [ReadOnly] ref OrbitProperties c3, [ReadOnly] ref Scale c4, [WriteOnly] ref CustomColor c5)
             {
                 float calculatedTime = c0.StartingTime + currentTime;
@@ -108,7 +108,7 @@ namespace Galaxy
         [BurstCompile]
         struct StarOrbitJob : IJobForEachWithEntity<StarProperties, OrbitProperties>
         {
-            [ReadOnly] public DensityWaveProperties densityWaveProperties;
+            [ReadOnly] public GalaxyPatternProperties densityWaveProperties;
             public void Execute(Entity entity, int index, [ReadOnly] ref StarProperties c0, [WriteOnly] ref OrbitProperties c1)
             {
                 c1 = densityWaveProperties.GetOrbit(c0.Proportion);
@@ -145,8 +145,8 @@ namespace Galaxy
 
         #region Public
         private float m_Time;
-        private DensityWave m_DensityWave;
-        public DensityWave DensityWave { get => m_DensityWave; set => m_DensityWave = value; }
+        private GalaxyPattern m_DensityWave;
+        public GalaxyPattern DensityWave { get => m_DensityWave; set => m_DensityWave = value; }
         public float Time { get => m_Time; set => m_Time = value; }
         #endregion
 
@@ -270,6 +270,8 @@ namespace Galaxy
         private Vector3 m_PreviousCameraPosition;
         private Quaternion m_PreviousCameraRotation;
         private PlanetPositionSimulationSystem m_PlanetPositionSimulationSystem;
+        private Vector3 m_DefaultCameraLocalPosition;
+        private Quaternion m_DefaultCameraLocalRotation;
         #endregion
 
         #region Public
@@ -283,7 +285,7 @@ namespace Galaxy
         private bool m_InTransition;
         private Light m_Light;
         private PlanetOrbits m_PlanetOrbits;
-        private float m_TransitionTime = 100;
+        private float m_TransitionTime;
         public Entity ResultEntity { get => m_ResultEntity; set => m_ResultEntity = value; }
         public float MaxRayCastDistance { get => m_MaxRayCastDistance; set => m_MaxRayCastDistance = value; }
         public Entity LastResultEntity { get => m_LastResultEntity; set => m_LastResultEntity = value; }
@@ -300,6 +302,8 @@ namespace Galaxy
         #region Managers
         protected override void OnCreateManager()
         {
+            m_DefaultCameraLocalPosition = new Vector3(0, 0, -10);
+            m_DefaultCameraLocalRotation = Quaternion.identity;
             m_RayCastResultEntities = new NativeQueue<Entity>(Allocator.Persistent);
             m_Distances = new NativeQueue<float>(Allocator.Persistent);
             m_LastResultEntity = Entity.Null;
@@ -311,7 +315,6 @@ namespace Galaxy
         public void Init()
         {
             m_MainCamera = Camera.main;
-            MaxRayCastDistance = m_MainCamera.farClipPlane;
             Enabled = true;
         }
 
@@ -337,11 +340,11 @@ namespace Galaxy
             [WriteOnly] public NativeQueue<float>.Concurrent RayCastDistances;
             public void Execute([ReadOnly] Entity entity, [ReadOnly] int index, [ReadOnly] ref Translation c0, [ReadOnly] ref Scale c1, [ReadOnly] ref StarProperties c2)
             {
-                if (Vector3.Distance(c0.Value, Start) <= RayCastDistance)
+                if (Vector3.Distance(c0.Value, Start) <= RayCastDistance && Vector3.Angle(End - Start, (Vector3)c0.Value - Start) < 90)
                 {
-                    float d = Mathf.Abs(Vector3.Dot(((Vector3)c0.Value - Start), (End - Start))) / RayCastDistance;
+                    float d = Vector3.Dot(((Vector3)c0.Value - Start), (End - Start)) / RayCastDistance;
                     float ap = Vector3.Distance(c0.Value, Start);
-                    if (Mathf.Sqrt(ap * ap - d * d) < c1.Value)
+                    if (ap * ap - d * d < c1.Value * c1.Value)
                     {
                         RayCastResultEntities.Enqueue(entity);
                         RayCastDistances.Enqueue(ap);
@@ -360,11 +363,11 @@ namespace Galaxy
             [WriteOnly] public NativeQueue<float>.Concurrent RayCastDistances;
             public void Execute([ReadOnly]Entity entity, [ReadOnly]int index, [ReadOnly]ref LocalToWorld c0, [ReadOnly]ref Scale c1, [ReadOnly]ref PlanetProperties c2)
             {
-                if (Vector3.Distance(c0.Position, Start) <= RayCastDistance)
+                if (Vector3.Angle(End - Start, (Vector3)c0.Position - Start) < 90 && Vector3.Distance(c0.Position, Start) <= RayCastDistance)
                 {
-                    float d = Mathf.Abs(Vector3.Dot(((Vector3)c0.Position - Start), (End - Start))) / RayCastDistance;
+                    float d = Vector3.Dot(((Vector3)c0.Position - Start), (End - Start)) / RayCastDistance;
                     float ap = Vector3.Distance(c0.Position, Start);
-                    if (Mathf.Sqrt(ap * ap - d * d) < c1.Value)
+                    if (ap * ap - d * d < c1.Value * c1.Value)
                     {
                         RayCastResultEntities.Enqueue(entity);
                         RayCastDistances.Enqueue(ap);
@@ -419,37 +422,49 @@ namespace Galaxy
             #endregion
 
             #region CameraControl
-            if (Input.GetKeyDown(KeyCode.F) && m_ResultEntity != Entity.Null)
+            if (Input.GetKeyDown(KeyCode.F))
             {
-                m_SelectedEntity = m_ResultEntity;
-                //If viewtype is galaxy, we need to switch to star system. if in star system, we need to focus on planet or star.
-                if (m_ViewType == ViewType.Galaxy)
+                if (m_ResultEntity != Entity.Null)
                 {
-                    m_ViewType = ViewType.StarSystem;
-                    SelectedStarEntity = SelectedEntity;
-                    m_PlanetPositionSimulationSystem.ResetEntity(SelectedStarEntity);
-                    m_Light.color = EntityManager.GetComponentData<StarProperties>(SelectedStarEntity).Color;
-                    m_PlanetOrbits.Reset(SelectedStarEntity);
-                    m_Light.enabled = true;
-                    m_PlanetOrbits.gameObject.SetActive(true);
+                    m_SelectedEntity = m_ResultEntity;
+                    //If viewtype is galaxy, we need to switch to star system. if in star system, we need to focus on planet or star.
+                    if (m_ViewType == ViewType.Galaxy)
+                    {
+                        m_ViewType = ViewType.StarSystem;
+                        m_CameraControl.DefaultCameraMoveSpeed /= 10;
+                        m_DefaultCameraLocalPosition = new Vector3(0, 0, -5);
+                        SelectedStarEntity = SelectedEntity;
+                        m_PlanetPositionSimulationSystem.ResetEntity(SelectedStarEntity);
+                        m_Light.color = EntityManager.GetComponentData<StarProperties>(SelectedStarEntity).Color;
+                        m_PlanetOrbits.Reset(SelectedStarEntity);
+                        m_Light.enabled = true;
+                        m_PlanetOrbits.gameObject.SetActive(true);
+                    }
+                    else if (m_ViewType == ViewType.StarSystem)
+                    {
+                        m_ViewType = ViewType.Planet;
+                        m_DefaultCameraLocalPosition = new Vector3(0, 0, -3);
+                        m_CameraControl.DefaultCameraMoveSpeed /= 10;
+                    }
                 }
-                else if (m_ViewType == ViewType.StarSystem)
+                if (m_SelectedEntity != Entity.Null)
                 {
-                    m_ViewType = ViewType.Planet;
+                    m_InTransition = true;
+                    m_TransitionTime = Mathf.Pow(Vector3.Distance(m_MainCamera.transform.position, EntityManager.GetComponentData<LocalToWorld>(m_SelectedEntity).Position), 0.25f) / 5;
+                    m_Timer = m_TransitionTime;
+                    m_PreviousPosition = m_CameraControl.transform.position;
+                    m_PreviousCameraPosition = m_MainCamera.transform.localPosition;
+                    m_PreviousCameraRotation = m_MainCamera.transform.localRotation;
                 }
-                InTransition = true;
-                m_TransitionTime = Mathf.Sqrt(Vector3.Distance(m_MainCamera.transform.position, EntityManager.GetComponentData<LocalToWorld>(m_SelectedEntity).Position)) / 10;
-                m_Timer = m_TransitionTime;
-                m_PreviousPosition = m_CameraControl.transform.position;
-                m_PreviousCameraPosition = m_MainCamera.transform.localPosition;
-                m_PreviousCameraRotation = m_MainCamera.transform.localRotation;
             }
             else if (Input.GetKeyDown(KeyCode.G))
             {
                 if (m_ViewType == ViewType.StarSystem)
                 {
                     m_ViewType = ViewType.Galaxy;
-                    SelectedEntity = Entity.Null;
+                    m_DefaultCameraLocalPosition = new Vector3(0, 0, -10);
+                    m_CameraControl.DefaultCameraMoveSpeed *= 10;
+                    m_SelectedEntity = Entity.Null;
                     m_PlanetPositionSimulationSystem.ResetEntity(Entity.Null);
                     m_Light.enabled = false;
                     m_PlanetOrbits.gameObject.SetActive(false);
@@ -457,9 +472,11 @@ namespace Galaxy
                 else if (m_ViewType == ViewType.Planet)
                 {
                     m_ViewType = ViewType.StarSystem;
-                    SelectedEntity = SelectedStarEntity;
-                    InTransition = true;
-                    m_TransitionTime = Mathf.Sqrt(Vector3.Distance(m_MainCamera.transform.position, EntityManager.GetComponentData<LocalToWorld>(SelectedEntity).Position)) / 10;
+                    m_DefaultCameraLocalPosition = new Vector3(0, 0, -5);
+                    m_CameraControl.DefaultCameraMoveSpeed *= 10;
+                    m_SelectedEntity = SelectedStarEntity;
+                    m_InTransition = true;
+                    m_TransitionTime = Mathf.Pow(Vector3.Distance(m_MainCamera.transform.position, EntityManager.GetComponentData<LocalToWorld>(m_SelectedEntity).Position), 0.25f) / 5;
                     m_Timer = m_TransitionTime;
                     m_PreviousPosition = m_CameraControl.transform.position;
                     m_PreviousCameraPosition = m_MainCamera.transform.localPosition;
@@ -467,7 +484,7 @@ namespace Galaxy
                 }
             }
 
-            if (SelectedEntity != Entity.Null)
+            if (m_SelectedEntity != Entity.Null)
             {
                 Vector3 position = EntityManager.GetComponentData<LocalToWorld>(SelectedEntity).Position;
                 if (!InTransition)
@@ -482,10 +499,10 @@ namespace Galaxy
                         m_Timer = 0;
                         InTransition = false;
                     }
-                    float t = Mathf.Sqrt((m_TransitionTime - m_Timer) / m_TransitionTime);
+                    float t = Mathf.Pow((m_TransitionTime - m_Timer) / m_TransitionTime, 0.25f);
                     m_CameraControl.transform.position = Vector3.Lerp(m_PreviousPosition, position, t);
-                    m_MainCamera.transform.localPosition = Vector3.Lerp(m_PreviousCameraPosition, new Vector3(0, 0, -5), t);
-                    m_MainCamera.transform.localRotation = Quaternion.Lerp(m_PreviousCameraRotation, Quaternion.identity, t);
+                    m_MainCamera.transform.localPosition = Vector3.Lerp(m_PreviousCameraPosition, m_DefaultCameraLocalPosition, t);
+                    m_MainCamera.transform.localRotation = Quaternion.Lerp(m_PreviousCameraRotation, m_DefaultCameraLocalRotation, t);
                 }
             }
             #endregion
@@ -771,11 +788,11 @@ namespace Galaxy
         #endregion
 
         #region Public
-        private DensityWave m_DensityWave;
+        private GalaxyPattern m_DensityWave;
         private Queue<Entity> m_InsatancedStarEntities;
         private int m_StarAmount;
         private int m_MaxPlanetAmount;
-        public DensityWave DensityWave { get => m_DensityWave; set => m_DensityWave = value; }
+        public GalaxyPattern DensityWave { get => m_DensityWave; set => m_DensityWave = value; }
         public Queue<Entity> InsatancedStarEntities { get => m_InsatancedStarEntities; set => m_InsatancedStarEntities = value; }
         public int StarAmount { get => m_StarAmount; set => m_StarAmount = value; }
         public int MaxPlanetAmount { get => m_MaxPlanetAmount; set => m_MaxPlanetAmount = value; }
