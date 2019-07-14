@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 using Galaxy;
-[CustomEditor(typeof(HPlanet))]
+[CustomEditor(typeof(Planet))]
 public class HPlanetEditor : Editor {
     int toolBar = 0;
     bool debug = false;
@@ -25,7 +25,7 @@ public class HPlanetEditor : Editor {
         //debug = EditorGUILayout.Toggle(debug);
         if (debug) DrawDefaultInspector();
 
-        HPlanet planet = (HPlanet)target;
+        Planet planet = (Planet)target;
 
 
         string[] toolBarOptions = new string[4] { "General", "Atmoshere", "Climate", "Population" };

@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f601a6a9326f8dc40befd858b21033fa, type: 3}
+  m_Name: Planet Generator
+  m_EditorClassIdentifier: 
+  m_PlanetPrefabs:
+  - {fileID: 114440849474459570, guid: 9917abb264bfa864c89aae0e4f837fdf, type: 3}
+  - {fileID: 114358306663455640, guid: 132b6995d467d9a41a04fe3bf68ef9e4, type: 3}
+  - {fileID: 114459277808773120, guid: 56a7161d3e2161743ad7a9c33f02e12f, type: 3}
+  - {fileID: 114994957199364206, guid: 44fec056c8eb2414b94c93adfb26abe6, type: 3}
+  - {fileID: 114003845767938440, guid: 217532440bd3dc04483af9511a103f92, type: 3}
+  - {fileID: 114406085881601990, guid: e677b2da8fbbb6c4a8914ae2f58620ac, type: 3}
+  - {fileID: 114741135231812980, guid: 12585ce1a3b13ae4e9969a8a1803273c, type: 3}
+  - {fileID: 114089814600630386, guid: fe42d8b7774ebff408739c299f0dbcbd, type: 3}

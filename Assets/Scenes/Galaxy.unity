@@ -7110,8 +7110,8 @@ MonoBehaviour:
   m_DensityWaveProperties:
     ZSpread: 0.03
     XYSpread: 0.005
-    DiskA: 15000
-    DiskB: 15000
+    DiskA: 7500
+    DiskB: 7500
     DiskSpeed: 1
     DiskColor: {r: 0, g: 0.8386278, b: 1, a: 1}
     CoreTiltX: 0
@@ -7120,7 +7120,7 @@ MonoBehaviour:
     CoreProportion: 0.3
     CoreSpeed: 20
     CoreColor: {r: 1, g: 0.6901961, b: 0, a: 1}
-    MinimumRadius: 200
+    MinimumRadius: 50
     CenterTiltX: 0
     CenterTiltY: 0
     CenterSpeed: 10

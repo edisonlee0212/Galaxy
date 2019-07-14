@@ -18,7 +18,7 @@ namespace Galaxy
     {
         #region Attributes
         [SerializeField]
-        private StarSystem m_StarSystemPrefab;
+        private PlanetGenerator m_PlanetGenerator;
         [SerializeField]
         private NebulasSystem m_NebulasSystem;
         [SerializeField]
@@ -30,15 +30,13 @@ namespace Galaxy
         [SerializeField]
         private Material m_StarMaterial;
         [SerializeField]
-        private Material m_PlanetMaterial;
-        [SerializeField]
         private int m_StarAmount;
         [SerializeField]
         private Light m_Light;
         [SerializeField]
         private PlanetOrbits m_PlanetOrbits;
         [SerializeField]
-        private HPlanet m_HPlanet;
+        private Planet m_HPlanet;
         #endregion
 
         #region Public
@@ -56,20 +54,24 @@ namespace Galaxy
         public void Init(GalaxyPatternProperties m_DensityWaveProperties, int maxPlanetAmount = 20)
         {
             m_MaxPlanetAmount = maxPlanetAmount;
+
             //Create density wave
             DensityWave = new GalaxyPattern(m_DensityWaveProperties);
+
+            //Prepare star system
             Light light = Instantiate(m_Light);
             PlanetOrbits planetOrbits = Instantiate(m_PlanetOrbits);
             planetOrbits.MaxPlanetAmount = MaxPlanetAmount;
             planetOrbits.Init();
-            //Create galaxy system
-            Galaxy = new Galaxy(m_MaxPlanetAmount, m_DensityWave, m_StarMesh, m_StarMaterial, m_HPlanet, m_StarAmount, m_CameraControl, light, planetOrbits);
-            Galaxy.Init();
+            m_PlanetGenerator.Init();
 
             //Create nebula system
             m_NebulasSystem.DensityWave = DensityWave;
             m_NebulasSystem.Init();
 
+            //Create galaxy system
+            Galaxy = new Galaxy(m_MaxPlanetAmount, m_DensityWave, m_StarMesh, m_StarMaterial, m_PlanetGenerator, m_StarAmount, m_CameraControl, light, planetOrbits);
+            Galaxy.Init();
         }
         #endregion
 
@@ -95,7 +97,6 @@ namespace Galaxy
         #region Attributes
         private PlanetPositionSimulationSystem m_PlanetPositionSimulationSystem;
         private StarRenderSystem m_StarRenderSystem;
-        private PlanetRendererSystem m_PlanetRendererSystem;
         #endregion
 
         #region Public
@@ -120,7 +121,7 @@ namespace Galaxy
         #endregion
 
         #region Managers
-        public Galaxy(int maxPlanetAmount, GalaxyPattern densityWave, Mesh sphereMesh, Material starMaterial, HPlanet hPlanet, int starAmount, CameraControl cameraControl, Light light, PlanetOrbits planetOrbits)
+        public Galaxy(int maxPlanetAmount, GalaxyPattern densityWave, Mesh sphereMesh, Material starMaterial, PlanetGenerator planetGenerator, int starAmount, CameraControl cameraControl, Light light, PlanetOrbits planetOrbits)
         {
             m_StarAmount = starAmount;
             m_StarMaterial = starMaterial;
@@ -132,7 +133,7 @@ namespace Galaxy
             m_SelectionSystem = World.Active.GetOrCreateSystem<SelectionSystem>();
             m_StarEngine = World.Active.GetOrCreateSystem<StarEngine>();
             m_StarRenderSystem = World.Active.GetOrCreateSystem<StarRenderSystem>();
-            m_PlanetRendererSystem = World.Active.GetOrCreateSystem<PlanetRendererSystem>();
+
 
             m_SelectionSystem.CameraControl = cameraControl;
             m_SelectionSystem.Light = light;
@@ -140,7 +141,7 @@ namespace Galaxy
             m_SelectionSystem.PlanetOrbits = planetOrbits;
             m_PlanetPositionSimulationSystem.PlanetOrbits = planetOrbits;
             m_StarRenderSystem.PlanetOrbits = planetOrbits;
-            m_SelectionSystem.MaxRayCastDistance = 10000;
+            m_SelectionSystem.MaxRayCastDistance = 28000;
 
             m_StarPositionSimulationSystem.DensityWave = m_DensityWave;
             m_StarEngine.DensityWave = m_DensityWave;
@@ -150,9 +151,9 @@ namespace Galaxy
 
             m_StarRenderSystem.StarMesh = sphereMesh;
             m_StarRenderSystem.StarMaterial = starMaterial;
-            m_PlanetRendererSystem.HPlanet = hPlanet;
-            m_PlanetPositionSimulationSystem.HPlanet = hPlanet;
-            m_PlanetRendererSystem.PlanetMesh = sphereMesh;
+            
+            m_PlanetPositionSimulationSystem.PlanetGenerator = planetGenerator;
+
             m_StarEngine.PlanetMesh = sphereMesh;
         }
 
@@ -163,7 +164,7 @@ namespace Galaxy
             m_PlanetPositionSimulationSystem.Init();
             m_SelectionSystem.Init();
             m_StarRenderSystem.Init();
-            m_PlanetRendererSystem.Init();
+
         }
         #endregion
 

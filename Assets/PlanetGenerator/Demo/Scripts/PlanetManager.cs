@@ -13,8 +13,8 @@ public class PlanetManager : MonoBehaviour {
     private List<Sprite> gradSprites = new List<Sprite>() { };
 
 
-    public HPlanet[] planets;
-    public HPlanet selected;
+    public Planet[] planets;
+    public Planet selected;
     public Slider seed;
     public Slider size;
     public Slider ambient;

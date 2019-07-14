@@ -49,7 +49,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 0}
+  - {fileID: 2100000, guid: ff57d9ac02f7f584d993ebc7a49d33df, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -191,6 +191,10 @@ MonoBehaviour:
   _AtmosphereDensity: 1
   _AtmosphereBrightness: 0.677
   _HeightGradientResolution: 64
+  _HeightGradientMap: {fileID: 0}
+  _DetailsGradientResolution: 64
+  _DetailsGradientMap: {fileID: 0}
+  _AtmosphereShader: {fileID: 0}
   HeightGradient:
     serializedVersion: 2
     key0: {r: 0.162, g: 0.13528724, b: 0.1197766, a: 1}
@@ -220,8 +224,6 @@ MonoBehaviour:
     m_Mode: 0
     m_NumColorKeys: 4
     m_NumAlphaKeys: 2
-  _HeightGradientMap: {fileID: 0}
-  _DetailsGradientResolution: 64
   detailsColorMultiplier: 1
   DetailsGradient:
     serializedVersion: 2
@@ -252,4 +254,3 @@ MonoBehaviour:
     m_Mode: 0
     m_NumColorKeys: 2
     m_NumAlphaKeys: 2
-  _DetailsGradientMap: {fileID: 0}

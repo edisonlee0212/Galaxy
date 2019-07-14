@@ -145,12 +145,12 @@ namespace Galaxy
         #region Public
         private float m_Time;
         private GalaxyPattern m_DensityWave;
-        private HPlanet m_HPlanet;
+        private PlanetGenerator m_PlanetGenerator;
         private PlanetOrbits m_PlanetOrbits;
         public GalaxyPattern DensityWave { get => m_DensityWave; set => m_DensityWave = value; }
         public float Time { get => m_Time; set => m_Time = value; }
-        public HPlanet HPlanet { get => m_HPlanet; set => m_HPlanet = value; }
         public PlanetOrbits PlanetOrbits { get => m_PlanetOrbits; set => m_PlanetOrbits = value; }
+        public PlanetGenerator PlanetGenerator { get => m_PlanetGenerator; set => m_PlanetGenerator = value; }
         #endregion
 
         #region Managers
@@ -203,9 +203,15 @@ namespace Galaxy
                     PlanetOrbits.Orbits[i].gameObject.SetActive(true);
                     PlanetOrbits.Orbits[i].CalculateEllipse(0.05f);
                     var renderMesh = EntityManager.GetSharedComponentData<RenderMesh>(planets[i]);
-                    renderMesh.material = m_HPlanet.GetPlanetMaterial();
+                    renderMesh.material = m_PlanetGenerator.GetPlanetMaterial(index, m_StarSystemProperties.Seed);
                     EntityManager.SetSharedComponentData(planets[i], renderMesh);
 
+                    //Set up material for atmosphere.
+                    /*Entity atmosphere = EntityManager.GetBuffer<Child>(planets[i])[0].Value;
+                    renderMesh = EntityManager.GetSharedComponentData<RenderMesh>(atmosphere);
+                    renderMesh.material = m_PlanetGenerator.GetAtmosphereMaterial(index, m_StarSystemProperties.Seed);
+                    EntityManager.SetSharedComponentData(atmosphere, renderMesh);
+                    */
                     EntityManager.RemoveComponent<PreviousParent>(planets[i]);
                     index++;
                 }
@@ -236,8 +242,15 @@ namespace Galaxy
                         PlanetOrbits.Orbits[i].gameObject.SetActive(true);
                         PlanetOrbits.Orbits[i].CalculateEllipse(0.1f);
                         var renderMesh = EntityManager.GetSharedComponentData<RenderMesh>(disabledPlanets[i]);
-                        renderMesh.material = m_HPlanet.GetPlanetMaterial();
+                        renderMesh.material = m_PlanetGenerator.GetPlanetMaterial(index, m_StarSystemProperties.Seed);
                         EntityManager.SetSharedComponentData(disabledPlanets[i], renderMesh);
+
+                        //Set up material for atmosphere.
+                        /*Entity atmosphere = EntityManager.GetBuffer<Child>(disabledPlanets[i])[0].Value;
+                        renderMesh = EntityManager.GetSharedComponentData<RenderMesh>(atmosphere);
+                        renderMesh.material = m_PlanetGenerator.GetAtmosphereMaterial(index, m_StarSystemProperties.Seed);
+                        EntityManager.SetSharedComponentData(atmosphere, renderMesh);
+                        */
                         EntityManager.RemoveComponent<PreviousParent>(disabledPlanets[i]);
                         index++;
                     }
@@ -452,66 +465,68 @@ namespace Galaxy
             #endregion
 
             #region CameraControl
-            if (Input.GetKeyDown(KeyCode.F))
+            if (!m_InTransition)
             {
-                if (m_ResultEntity != Entity.Null)
+                if (Input.GetKeyDown(KeyCode.F))
                 {
-                    m_SelectedEntity = m_ResultEntity;
-                    //If viewtype is galaxy, we need to switch to star system. if in star system, we need to focus on planet or star.
-                    if (m_ViewType == ViewType.Galaxy)
+                    if (m_ResultEntity != Entity.Null)
+                    {
+                        m_SelectedEntity = m_ResultEntity;
+                        //If viewtype is galaxy, we need to switch to star system. if in star system, we need to focus on planet or star.
+                        if (m_ViewType == ViewType.Galaxy)
+                        {
+                            m_ViewType = ViewType.StarSystem;
+                            m_CameraControl.DefaultCameraMoveSpeed /= 10;
+                            m_DefaultCameraLocalPosition = new Vector3(0, 0, -5);
+                            m_SelectedStarEntity = m_SelectedEntity;
+                            m_StarRenderSystem.SelectedStarEntity = m_SelectedEntity;
+                            m_PlanetPositionSimulationSystem.ResetEntity(m_SelectedStarEntity);
+                            m_Light.enabled = true;
+                        }
+                        else if (m_ViewType == ViewType.StarSystem)
+                        {
+                            m_ViewType = ViewType.Planet;
+                            m_DefaultCameraLocalPosition = new Vector3(0, 0, -3);
+                            m_CameraControl.DefaultCameraMoveSpeed /= 10;
+                        }
+                    }
+                    if (m_SelectedEntity != Entity.Null)
+                    {
+                        m_InTransition = true;
+                        m_TransitionTime = Mathf.Pow(Vector3.Distance(m_MainCamera.transform.position, EntityManager.GetComponentData<LocalToWorld>(m_SelectedEntity).Position), 0.25f) / 5;
+                        m_Timer = m_TransitionTime;
+                        m_PreviousPosition = m_CameraControl.transform.position;
+                        m_PreviousCameraPosition = m_MainCamera.transform.localPosition;
+                        m_PreviousCameraRotation = m_MainCamera.transform.localRotation;
+                    }
+                }
+                else if (Input.GetKeyDown(KeyCode.G))
+                {
+                    if (m_ViewType == ViewType.StarSystem)
+                    {
+                        m_ViewType = ViewType.Galaxy;
+                        m_DefaultCameraLocalPosition = new Vector3(0, 0, -10);
+                        m_CameraControl.DefaultCameraMoveSpeed *= 10;
+                        m_SelectedEntity = Entity.Null;
+                        m_StarRenderSystem.SelectedStarEntity = m_SelectedEntity;
+                        m_PlanetPositionSimulationSystem.ResetEntity(Entity.Null);
+                        m_Light.enabled = false;
+                    }
+                    else if (m_ViewType == ViewType.Planet)
                     {
                         m_ViewType = ViewType.StarSystem;
-                        m_CameraControl.DefaultCameraMoveSpeed /= 10;
                         m_DefaultCameraLocalPosition = new Vector3(0, 0, -5);
-                        m_SelectedStarEntity = m_SelectedEntity;
-                        m_StarRenderSystem.SelectedStarEntity = m_SelectedEntity;
-                        m_PlanetPositionSimulationSystem.ResetEntity(SelectedStarEntity);
-                        m_Light.enabled = true;
-                    }
-                    else if (m_ViewType == ViewType.StarSystem)
-                    {
-                        m_ViewType = ViewType.Planet;
-                        m_DefaultCameraLocalPosition = new Vector3(0, 0, -3);
-                        m_CameraControl.DefaultCameraMoveSpeed /= 10;
+                        m_CameraControl.DefaultCameraMoveSpeed *= 10;
+                        m_SelectedEntity = SelectedStarEntity;
+                        m_InTransition = true;
+                        m_TransitionTime = Mathf.Pow(Vector3.Distance(m_MainCamera.transform.position, EntityManager.GetComponentData<LocalToWorld>(m_SelectedEntity).Position), 0.25f) / 5;
+                        m_Timer = m_TransitionTime;
+                        m_PreviousPosition = m_CameraControl.transform.position;
+                        m_PreviousCameraPosition = m_MainCamera.transform.localPosition;
+                        m_PreviousCameraRotation = m_MainCamera.transform.localRotation;
                     }
                 }
-                if (m_SelectedEntity != Entity.Null)
-                {
-                    m_InTransition = true;
-                    m_TransitionTime = Mathf.Pow(Vector3.Distance(m_MainCamera.transform.position, EntityManager.GetComponentData<LocalToWorld>(m_SelectedEntity).Position), 0.25f) / 5;
-                    m_Timer = m_TransitionTime;
-                    m_PreviousPosition = m_CameraControl.transform.position;
-                    m_PreviousCameraPosition = m_MainCamera.transform.localPosition;
-                    m_PreviousCameraRotation = m_MainCamera.transform.localRotation;
-                }
             }
-            else if (Input.GetKeyDown(KeyCode.G))
-            {
-                if (m_ViewType == ViewType.StarSystem)
-                {
-                    m_ViewType = ViewType.Galaxy;
-                    m_DefaultCameraLocalPosition = new Vector3(0, 0, -10);
-                    m_CameraControl.DefaultCameraMoveSpeed *= 10;
-                    m_SelectedEntity = Entity.Null;
-                    m_StarRenderSystem.SelectedStarEntity = m_SelectedEntity;
-                    m_PlanetPositionSimulationSystem.ResetEntity(Entity.Null);
-                    m_Light.enabled = false;
-                }
-                else if (m_ViewType == ViewType.Planet)
-                {
-                    m_ViewType = ViewType.StarSystem;
-                    m_DefaultCameraLocalPosition = new Vector3(0, 0, -5);
-                    m_CameraControl.DefaultCameraMoveSpeed *= 10;
-                    m_SelectedEntity = SelectedStarEntity;
-                    m_InTransition = true;
-                    m_TransitionTime = Mathf.Pow(Vector3.Distance(m_MainCamera.transform.position, EntityManager.GetComponentData<LocalToWorld>(m_SelectedEntity).Position), 0.25f) / 5;
-                    m_Timer = m_TransitionTime;
-                    m_PreviousPosition = m_CameraControl.transform.position;
-                    m_PreviousCameraPosition = m_MainCamera.transform.localPosition;
-                    m_PreviousCameraRotation = m_MainCamera.transform.localRotation;
-                }
-            }
-
             if (m_SelectedEntity != Entity.Null)
             {
                 Vector3 position = EntityManager.GetComponentData<LocalToWorld>(SelectedEntity).Position;
@@ -767,54 +782,6 @@ namespace Galaxy
             return inputDeps;
         }
     }
-
-    [UpdateInGroup(typeof(PresentationSystemGroup))]
-    public class PlanetRendererSystem : JobComponentSystem
-    {
-        #region Attributes
-        private EntityQuery m_InstanceQuery;
-        private Camera m_Camera;
-        #endregion
-
-        #region Public
-        private UnityEngine.Mesh m_PlanetMesh;
-        private HPlanet m_HPlanet;
-        public UnityEngine.Mesh PlanetMesh { get => m_PlanetMesh; set => m_PlanetMesh = value; }
-        public HPlanet HPlanet { get => m_HPlanet; set => m_HPlanet = value; }
-        #endregion
-
-        #region Managers
-        protected override void OnCreateManager()
-        {
-            m_Camera = Camera.main;
-            m_InstanceQuery = EntityManager.CreateEntityQuery(typeof(LocalToWorld), typeof(PlanetProperties));
-            Enabled = false;
-        }
-
-        public void Init()
-        {
-            //Enabled = true;
-        }
-
-        protected override void OnDestroyManager()
-        {
-            m_InstanceQuery.Dispose();
-        }
-        #endregion
-
-
-        protected override JobHandle OnUpdate(JobHandle inputDeps)
-        {
-            var planets = m_InstanceQuery.ToEntityArray(Allocator.TempJob);
-            //for (int i = 0; i < planets.Length; i++) Graphics.DrawMesh(m_PlanetMesh, EntityManager.GetComponentData<LocalToWorld>(planets[i]).Value, m_PlanetMaterial, 0, m_Camera);
-            planets.Dispose();
-
-            #region Planets and Orbits
-            
-            #endregion
-            return inputDeps;
-        }
-    }
     #endregion
 
     #region Other Systems
@@ -862,17 +829,26 @@ namespace Galaxy
                 typeof(LocalToWorld)
                 );
             EntityArchetype planetEntityArchetype = EntityManager.CreateArchetype(
-                            typeof(CustomCullingStat),
-                            typeof(Translation),
-                            typeof(Rotation),
-                            typeof(Scale),
-                            typeof(LocalToWorld),
-                            typeof(LocalToParent),
-                            typeof(RenderMesh),
-                            typeof(OrbitProperties),
-                            typeof(PlanetProperties),
-                            typeof(Parent)
-                            );
+                typeof(CustomCullingStat),
+                typeof(Translation),
+                typeof(Rotation),
+                typeof(Scale),
+                typeof(LocalToWorld),
+                typeof(LocalToParent),
+                typeof(RenderMesh),
+                typeof(OrbitProperties),
+                typeof(PlanetProperties),
+                typeof(Parent)
+                );
+            EntityArchetype planetAtmosphereArchetype = EntityManager.CreateArchetype(
+                typeof(Translation),
+                typeof(Rotation),
+                typeof(Scale),
+                typeof(LocalToWorld),
+                typeof(LocalToParent),
+                typeof(RenderMesh),
+                typeof(Parent)
+                );
             for (int i = 0; i < m_StarAmount; i++)
             {
                 Entity instance = EntityManager.CreateEntity(starEntityArchetype);
@@ -890,6 +866,12 @@ namespace Galaxy
                         EntityManager.SetComponentData(planet, new PlanetProperties { StartTime = Random.Next() * 360 });
                         RenderMesh renderMesh = new RenderMesh { mesh = m_PlanetMesh };
                         EntityManager.SetSharedComponentData(planet, renderMesh);
+
+                        Entity planetAtmosphere = EntityManager.CreateEntity(planetAtmosphereArchetype);
+                        EntityManager.SetComponentData(planetAtmosphere, new Parent { Value = planet });
+                        EntityManager.SetComponentData(planetAtmosphere, new Scale { Value = 1 });
+                        RenderMesh renderMesh2 = new RenderMesh { mesh = m_PlanetMesh };
+                        EntityManager.SetSharedComponentData(planetAtmosphere, renderMesh2);
                     }
                 }
                 m_InsatancedStarEntities.Enqueue(instance);
