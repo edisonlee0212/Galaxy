@@ -1,0 +1,17 @@
+fileFormatVersion: 2
+guid: 7fe932a10ef89154aa6c5747865a160e
+timeCreated: 1515658583
+licenseType: Store
+ShaderImporter:
+  defaultTextures:
+  - _HeightMap: {fileID: 2800000, guid: 49adedbcd11ea474d82c51a5885fcbd6, type: 3}
+  - _Clouds: {fileID: 1342833121, guid: 877a709325ffbb340a453962d119c2ca, type: 3}
+  - _City: {fileID: 2800000, guid: a7e1c9f4b6d143b41bc99d303d55d1dd, type: 3}
+  - _Vegetation: {fileID: 2800000, guid: 4e9fe0344fcb96048a8a4ff6e3100d71, type: 3}
+  - _NormalMap: {fileID: 2800000, guid: c1ccaee83080bc74c8a9677bcd1ba90c, type: 3}
+  - _CloudsNormal: {fileID: 1342833121, guid: 877a709325ffbb340a453962d119c2ca, type: 3}
+  - _CracksNormal: {fileID: -521487261, guid: b63e91988b1b61644813d760bb10a43d, type: 3}
+  - _CracksMap: {fileID: -521487261, guid: b63e91988b1b61644813d760bb10a43d, type: 3}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

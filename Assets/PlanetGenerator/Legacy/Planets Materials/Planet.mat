@@ -1,0 +1,181 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 6
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_Name: Planet
+  m_Shader: {fileID: 4800000, guid: 7fe932a10ef89154aa6c5747865a160e, type: 3}
+  m_ShaderKeywords: _EMISSION _SUNSET_ON
+  m_LightmapFlags: 1
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _BumpMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _City:
+        m_Texture: {fileID: 2800000, guid: 045a0eb9bd845664cb24f415401129e8, type: 3}
+        m_Scale: {x: 8, y: 8}
+        m_Offset: {x: 0, y: 0}
+    - _Clouds:
+        m_Texture: {fileID: 1342833121, guid: 877a709325ffbb340a453962d119c2ca, type: 3}
+        m_Scale: {x: 3, y: 3}
+        m_Offset: {x: 0, y: 0}
+    - _CloudsNormal:
+        m_Texture: {fileID: 1342833121, guid: 877a709325ffbb340a453962d119c2ca, type: 3}
+        m_Scale: {x: 3, y: 3}
+        m_Offset: {x: 0, y: 0}
+    - _Cracks:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _CracksMap:
+        m_Texture: {fileID: -521487261, guid: b63e91988b1b61644813d760bb10a43d, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _CracksNormal:
+        m_Texture: {fileID: 1812266071, guid: b63e91988b1b61644813d760bb10a43d, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DetailAlbedoMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DetailMask:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DetailNormalMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _EmissionMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _HeightMap:
+        m_Texture: {fileID: -391911840, guid: 877a709325ffbb340a453962d119c2ca, type: 3}
+        m_Scale: {x: 1.0909091, y: 1.0909091}
+        m_Offset: {x: 0, y: 0}
+    - _HeihtMap2:
+        m_Texture: {fileID: 2800000, guid: bf9fee4c8d8e6b84fbf13aa7fe6ad5f6, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MainTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Map:
+        m_Texture: {fileID: -1391569274, guid: 40e068a0cd45b144394d433b5e58f39c, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MetallicGlossMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _NormalMap:
+        m_Texture: {fileID: -147440112, guid: 877a709325ffbb340a453962d119c2ca, type: 3}
+        m_Scale: {x: 1.0909091, y: 1.0909091}
+        m_Offset: {x: 0, y: 0}
+    - _OcclusionMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _ParallaxMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Skybox:
+        m_Texture: {fileID: 563435208, guid: 0770f6d0883a835439e897cae1766b79, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Vegetation:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 8, y: 8}
+        m_Offset: {x: 0, y: 0}
+    - _node_2819:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _node_8646:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _node_8868:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Floats:
+    - _Ambient: 0
+    - _Ambirnt: 0.299
+    - _Atmosphere: 1
+    - _Border: 0.228
+    - _Brightness: 0.212
+    - _BumpScale: 1
+    - _CloudSpread: 0
+    - _CloudsAmount: 0.446
+    - _CloudsBias: 0.188
+    - _CloudsNormalIntencity: 0.473337
+    - _CloudsSpeed: 0.343
+    - _Cracks: 0
+    - _CracksDepth: 1
+    - _Cutoff: 0.5
+    - _Cyclones: 1
+    - _Density: 0.719
+    - _DetailNormalMapScale: 1
+    - _DstBlend: 0
+    - _Emission: 0
+    - _EmissiveCracks: 0
+    - _Fertility: 1
+    - _Flow: 0.5459756
+    - _Gloss: 0.691
+    - _GlossMapScale: 1
+    - _Glossiness: 0.5
+    - _GlossyReflections: 1
+    - _Metallic: 0
+    - _Mode: 0
+    - _NormalIntencity: 0.761
+    - _OcclusionStrength: 1
+    - _Parallax: 0.02
+    - _Population: 1
+    - _RandomSeed: 1
+    - _Refraction: 0.534
+    - _Rim: 0.125
+    - _Size: 0.169
+    - _SmoothnessTextureChannel: 0
+    - _SpecularHighlights: 1
+    - _Specularity: 0.341
+    - _SrcBlend: 1
+    - _Sunset: 1
+    - _Temperature: 0
+    - _UVSec: 0
+    - _WaterLevel: 0.45
+    - _ZWrite: 1
+    - _exposure: 2
+    - _node_6760: 1
+    m_Colors:
+    - _AtmosphereColor: {r: 0.15025583, g: 0.2530834, b: 0.497, a: 1}
+    - _CityColor: {r: 1, g: 0.7896683, b: 0.32784206, a: 1}
+    - _CloudsColor: {r: 0.875, g: 0.875, b: 0.875, a: 1}
+    - _Color: {r: 0.29411763, g: 0.8247464, b: 1, a: 1}
+    - _Color1: {r: 0.1764706, g: 0.1058824, b: 0, a: 1}
+    - _Color2: {r: 0.75, g: 0.566075, b: 0.2371324, a: 1}
+    - _Color3: {r: 0.9779412, g: 0.9388505, b: 0.8547206, a: 1}
+    - _CracksColor: {r: 0, g: 0, b: 0, a: 1}
+    - _EmissionColor: {r: 0, g: 0, b: 0, a: 0}
+    - _Mountains: {r: 0, g: 0, b: 0, a: 0}
+    - _Planes: {r: 0.39499998, g: 0.34422207, b: 0.21092999, a: 0}
+    - _Shores: {r: 0.866, g: 0.8437826, b: 0.543848, a: 0}
+    - _VegetationColor: {r: 0.071346, g: 0.253, b: 0.08011552, a: 1}
+    - _node_5100: {r: 0, g: 0, b: 0, a: 0}
+    - _node_5225: {r: 0, g: 0, b: 0, a: 0}
+    - _node_8863: {r: 0, g: 0, b: 0, a: 0}

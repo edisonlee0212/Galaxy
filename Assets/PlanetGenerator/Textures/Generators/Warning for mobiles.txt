@@ -1,0 +1,6 @@
+For some reason, normal maps get screwed when you switch your platform to android/iOS. 
+Even if you are using standard unity shader. 
+If you export them they work fine.
+
+To export them press cog icon on the top left of the substance 
+material inspector and select "Export Bitmaps (original alpha channels).

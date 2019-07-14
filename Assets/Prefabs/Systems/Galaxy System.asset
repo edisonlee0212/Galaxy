@@ -25,3 +25,5 @@ MonoBehaviour:
   m_Light: {fileID: 4496016142793240934, guid: c5c0489c1deaf924ea5c6a2f22691245, type: 3}
   m_PlanetOrbits: {fileID: 5298659160241683731, guid: 321cda228d49c47408b807296cb89538,
     type: 3}
+  m_HPlanet: {fileID: 5221965937177214199, guid: 71447e747a7879842b81ff9c6efbb713,
+    type: 3}

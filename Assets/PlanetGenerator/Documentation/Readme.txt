@@ -1,0 +1,2 @@
+To generate planets in runtime instantiate one of the prefabs, and then call MakeUnique() in HPlanet component of it (Make sure to use PlanetGen namespace). After that, you can set up parameters of the planet as you want. 
+Almost all of the parameters are applied instantaneously, except for gradients. After setting HeightGradient or DetailsGradient call UpdateHeightGradientMap() or UpdateDetailsGradientMap() respectively.
