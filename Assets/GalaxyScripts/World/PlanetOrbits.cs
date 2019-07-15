@@ -40,7 +40,7 @@ namespace Galaxy
                 Orbits[i].orbit = new OrbitProperties
                 {
                     tiltX = m_StarSystemProperties.Seed * i * 3,
-                    tiltY = m_StarSystemProperties.Seed * i * 3,
+                    tiltZ = m_StarSystemProperties.Seed * i * 3,
                     a = m_StarProperties.Mass * (m_StarProperties.Mass + 2 + i * 0.5f),
                     b = m_StarProperties.Mass * (m_StarProperties.Mass + 2 + i * 0.5f)
                 };

@@ -36,7 +36,7 @@ namespace Galaxy
         {
             m_GalaxySystem.CameraControl = m_CameraControl;
             m_GalaxySystem.Init(m_DensityWaveProperties);
-            m_TimeSpeed = 0.01f;
+            m_TimeSpeed = 0.02f;
             Debug.Assert(m_OrbitsAmount <= 100 && m_OrbitsAmount >= 10);
             m_OrbitObjects = new List<Orbit>();
             for (int i = 0; i < m_OrbitsAmount; i++)
@@ -145,7 +145,7 @@ namespace Galaxy
 
         public void SetCenterTiltY(float tiltY)
         {
-            m_DensityWave.SetCenterTiltY(tiltY);
+            m_DensityWave.SetCenterTiltZ(tiltY);
             Recalculate();
         }
 
@@ -157,7 +157,7 @@ namespace Galaxy
 
         public void SetCoreTiltY(float tiltY)
         {
-            m_DensityWave.SetCoreTiltY(tiltY);
+            m_DensityWave.SetCoreTiltZ(tiltY);
             Recalculate();
         }
 

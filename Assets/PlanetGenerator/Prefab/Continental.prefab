@@ -194,7 +194,6 @@ MonoBehaviour:
   _HeightGradientMap: {fileID: 0}
   _DetailsGradientResolution: 64
   _DetailsGradientMap: {fileID: 0}
-  _AtmosphereShader: {fileID: 0}
   HeightGradient:
     serializedVersion: 2
     key0: {r: 0.162, g: 0.13528724, b: 0.1197766, a: 1}

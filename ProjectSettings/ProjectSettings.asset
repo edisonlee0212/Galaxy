@@ -549,6 +549,7 @@ PlayerSettings:
   webGLWasmStreaming: 0
   scriptingDefineSymbols:
     1: SUBSTANCE_PLUGIN_ENABLED
+    13: SUBSTANCE_PLUGIN_ENABLED
   platformArchitecture: {}
   scriptingBackend:
     Standalone: 0

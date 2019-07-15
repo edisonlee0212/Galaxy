@@ -22,8 +22,6 @@ namespace Galaxy
         [SerializeField]
         private NebulasSystem m_NebulasSystem;
         [SerializeField]
-        private GameObject m_StarSystemsHolder;
-        [SerializeField]
         private Mesh m_StarMesh;
         [SerializeField]
         private Mesh m_PlanetMesh;
@@ -35,8 +33,6 @@ namespace Galaxy
         private Light m_Light;
         [SerializeField]
         private PlanetOrbits m_PlanetOrbits;
-        [SerializeField]
-        private Planet m_HPlanet;
         #endregion
 
         #region Public
@@ -70,7 +66,7 @@ namespace Galaxy
             m_NebulasSystem.Init();
 
             //Create galaxy system
-            Galaxy = new Galaxy(m_MaxPlanetAmount, m_DensityWave, m_StarMesh, m_StarMaterial, m_PlanetGenerator, m_StarAmount, m_CameraControl, light, planetOrbits);
+            Galaxy = new Galaxy(m_MaxPlanetAmount, m_DensityWave, m_StarMesh, m_PlanetMesh, m_StarMaterial, m_PlanetGenerator, m_StarAmount, m_CameraControl, light, planetOrbits);
             Galaxy.Init();
         }
         #endregion
@@ -95,7 +91,7 @@ namespace Galaxy
     public class Galaxy
     {
         #region Attributes
-        private PlanetPositionSimulationSystem m_PlanetPositionSimulationSystem;
+        private PlanetTransformSimulationSystem m_PlanetPositionSimulationSystem;
         private StarRenderSystem m_StarRenderSystem;
         #endregion
 
@@ -106,12 +102,12 @@ namespace Galaxy
         private int m_OrbitsAmount;
         private Mesh m_StarMesh;
         private Material m_StarMaterial;
-        private StarPositionSimulationSystem m_StarPositionSimulationSystem;
+        private StarTransformSimulationSystem m_StarPositionSimulationSystem;
         private StarEngine m_StarEngine;
         private SelectionSystem m_SelectionSystem;
         public GalaxyPattern DensityWave { get => m_DensityWave; set => m_DensityWave = value; }
         public int OrbitsAmount { get => m_OrbitsAmount; set => m_OrbitsAmount = value; }
-        public StarPositionSimulationSystem StarPositionSimulationSystem { get => m_StarPositionSimulationSystem; set => m_StarPositionSimulationSystem = value; }
+        public StarTransformSimulationSystem StarPositionSimulationSystem { get => m_StarPositionSimulationSystem; set => m_StarPositionSimulationSystem = value; }
         public SelectionSystem SelectionSystem { get => m_SelectionSystem; set => m_SelectionSystem = value; }
         public float Time { get => m_Time; }
         public StarEngine StarEngine { get => m_StarEngine; set => m_StarEngine = value; }
@@ -121,15 +117,15 @@ namespace Galaxy
         #endregion
 
         #region Managers
-        public Galaxy(int maxPlanetAmount, GalaxyPattern densityWave, Mesh sphereMesh, Material starMaterial, PlanetGenerator planetGenerator, int starAmount, CameraControl cameraControl, Light light, PlanetOrbits planetOrbits)
+        public Galaxy(int maxPlanetAmount, GalaxyPattern densityWave, Mesh starMesh, Mesh planetMesh, Material starMaterial, PlanetGenerator planetGenerator, int starAmount, CameraControl cameraControl, Light light, PlanetOrbits planetOrbits)
         {
             m_StarAmount = starAmount;
             m_StarMaterial = starMaterial;
-            m_StarMesh = sphereMesh;
+            m_StarMesh = starMesh;
 
             m_DensityWave = densityWave;
-            m_StarPositionSimulationSystem = World.Active.GetOrCreateSystem<StarPositionSimulationSystem>();
-            m_PlanetPositionSimulationSystem = World.Active.GetOrCreateSystem<PlanetPositionSimulationSystem>();
+            m_StarPositionSimulationSystem = World.Active.GetOrCreateSystem<StarTransformSimulationSystem>();
+            m_PlanetPositionSimulationSystem = World.Active.GetOrCreateSystem<PlanetTransformSimulationSystem>();
             m_SelectionSystem = World.Active.GetOrCreateSystem<SelectionSystem>();
             m_StarEngine = World.Active.GetOrCreateSystem<StarEngine>();
             m_StarRenderSystem = World.Active.GetOrCreateSystem<StarRenderSystem>();
@@ -141,20 +137,21 @@ namespace Galaxy
             m_SelectionSystem.PlanetOrbits = planetOrbits;
             m_PlanetPositionSimulationSystem.PlanetOrbits = planetOrbits;
             m_StarRenderSystem.PlanetOrbits = planetOrbits;
-            m_SelectionSystem.MaxRayCastDistance = 28000;
+            m_StarPositionSimulationSystem.DiscreteSimulationTimeStep = 0.02f;
+            m_StarPositionSimulationSystem.ContinuousSimulation = true;
 
             m_StarPositionSimulationSystem.DensityWave = m_DensityWave;
             m_StarEngine.DensityWave = m_DensityWave;
             m_PlanetPositionSimulationSystem.DensityWave = m_DensityWave;
             m_StarEngine.StarAmount = starAmount;
+            m_StarRenderSystem.StarAmount = starAmount;
             m_StarEngine.MaxPlanetAmount = maxPlanetAmount;
 
-            m_StarRenderSystem.StarMesh = sphereMesh;
+            m_StarRenderSystem.StarMesh = starMesh;
             m_StarRenderSystem.StarMaterial = starMaterial;
             
             m_PlanetPositionSimulationSystem.PlanetGenerator = planetGenerator;
-
-            m_StarEngine.PlanetMesh = sphereMesh;
+            m_StarEngine.PlanetMesh = planetMesh;
         }
 
         public void Init()
@@ -188,5 +185,129 @@ namespace Galaxy
             m_PlanetPositionSimulationSystem.SetTime(Time);
         }
         #endregion
+    }
+
+    public class GalaxyPattern
+    {
+        public GalaxyPatternProperties properties;
+
+        public GalaxyPatternProperties DensityWaveProperties { get => properties; set => properties = value; }
+
+        #region Properties setters
+
+        public void SetCenterPositionX(float x)
+        {
+            properties.CenterPosition.x = x;
+        }
+
+        public void SetCenterPositionY(float y)
+        {
+            properties.CenterPosition.y = y;
+        }
+
+        public void SetCenterPositionZ(float z)
+        {
+            properties.CenterPosition.z = z;
+        }
+
+        public void SetDensityWaveProperties(GalaxyPatternProperties densityWaveProperties)
+        {
+            DensityWaveProperties = densityWaveProperties;
+            SetCoreACoreB();
+        }
+
+        public void SetRotation(float rotation)
+        {
+            properties.Rotation = rotation;
+        }
+
+        public void SetCoreProportion(float proportion)
+        {
+            properties.CoreProportion = proportion;
+            SetCoreACoreB();
+        }
+
+        public void SetCoreEccentricity(float eccentricity)
+        {
+            properties.CoreEccentricity = eccentricity;
+            SetCoreACoreB();
+        }
+
+        public void SetMaxA(float maxA)
+        {
+            properties.DiskA = maxA;
+            SetCoreACoreB();
+        }
+
+        public void SetMaxB(float maxB)
+        {
+            properties.DiskB = maxB;
+            SetCoreACoreB();
+        }
+
+        public void SetCoreSpeed(float speed)
+        {
+            properties.CoreSpeed = speed;
+        }
+
+        public void SetCenterSpeed(float speed)
+        {
+            properties.CenterSpeed = speed;
+        }
+
+        public void SetDiskSpeed(float speed)
+        {
+            properties.DiskSpeed = speed;
+        }
+
+        public void SetMinRadius(float radius)
+        {
+            properties.MinimumRadius = radius;
+            SetCoreACoreB();
+        }
+
+        public void SetCenterTiltX(float tiltX)
+        {
+            properties.CenterTiltX = tiltX;
+        }
+
+        public void SetCenterTiltZ(float tiltZ)
+        {
+            properties.CenterTiltZ = tiltZ;
+        }
+
+        public void SetCoreTiltX(float tiltX)
+        {
+            properties.CoreTiltX = tiltX;
+        }
+
+        public void SetCoreTiltZ(float tiltZ)
+        {
+            properties.CoreTiltZ = tiltZ;
+        }
+
+        private void SetCoreACoreB()
+        {
+            float ab = properties.MinimumRadius + properties.MinimumRadius +
+                ((properties.DiskA + properties.DiskB) - properties.MinimumRadius - properties.MinimumRadius)
+                * properties.CoreProportion;
+            properties.CoreA = ab * properties.CoreEccentricity;
+            properties.CoreB = ab * (1 - properties.CoreEccentricity);
+        }
+        #endregion
+
+        public OrbitProperties GetOrbit(float proportion, float3 orbitOffset)
+        {
+            return properties.GetOrbit(proportion, orbitOffset);
+        }
+
+        public GalaxyPattern(GalaxyPatternProperties densityWaveProperties)
+        {
+            SetDensityWaveProperties(densityWaveProperties);
+        }
+        public float3 GetOrbitOffset(float proportion)
+        {
+            return properties.GetOrbitOffset(proportion);
+        }
     }
 }

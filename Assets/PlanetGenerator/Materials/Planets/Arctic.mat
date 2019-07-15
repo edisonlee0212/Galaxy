@@ -9,7 +9,7 @@ Material:
   m_PrefabAsset: {fileID: 0}
   m_Name: Arctic
   m_Shader: {fileID: 4800000, guid: 9809683c78abc3b4d840627b3b8abcdb, type: 3}
-  m_ShaderKeywords: _CLOUDS _CLOUDSAVGBLEND_ON _COMPLEXCLOUDS
+  m_ShaderKeywords: _CLOUDS _CLOUDSAVGBLEND_ON _COMPLEXCLOUDS _EMISSIVELIQUID_ON
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0

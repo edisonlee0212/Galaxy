@@ -18,9 +18,9 @@ namespace Galaxy {
             m_Canvas.transform.GetChild(2).GetComponentInChildren<Slider>().value = densityWaveProperties.CoreSpeed;
             m_Canvas.transform.GetChild(3).GetComponentInChildren<Slider>().value = densityWaveProperties.CenterSpeed;
             m_Canvas.transform.GetChild(4).GetComponentInChildren<Slider>().value = densityWaveProperties.CoreTiltX;
-            m_Canvas.transform.GetChild(5).GetComponentInChildren<Slider>().value = densityWaveProperties.CoreTiltY;
+            m_Canvas.transform.GetChild(5).GetComponentInChildren<Slider>().value = densityWaveProperties.CoreTiltZ;
             m_Canvas.transform.GetChild(6).GetComponentInChildren<Slider>().value = densityWaveProperties.CenterTiltX;
-            m_Canvas.transform.GetChild(7).GetComponentInChildren<Slider>().value = densityWaveProperties.CenterTiltY;
+            m_Canvas.transform.GetChild(7).GetComponentInChildren<Slider>().value = densityWaveProperties.CenterTiltZ;
             m_Canvas.transform.GetChild(8).GetComponentInChildren<Slider>().value = densityWaveProperties.MinimumRadius;
             m_Canvas.transform.GetChild(9).GetComponentInChildren<Slider>().value = densityWaveProperties.DiskA;
             m_Canvas.transform.GetChild(10).GetComponentInChildren<Slider>().value = densityWaveProperties.DiskB;
@@ -28,6 +28,7 @@ namespace Galaxy {
             m_Canvas.transform.GetChild(12).GetComponentInChildren<Slider>().value = densityWaveProperties.CoreProportion;
             m_Canvas.transform.GetChild(13).GetComponentInChildren<Slider>().value = timeSpeed;
             m_Canvas.transform.GetChild(14).GetComponentInChildren<Slider>().value = densityWaveProperties.CoreEccentricity;
+            transform.GetChild(0).gameObject.SetActive(m_Active);
         }
 
         // Update is called once per frame

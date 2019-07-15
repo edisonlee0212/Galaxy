@@ -9,7 +9,7 @@ Material:
   m_PrefabAsset: {fileID: 0}
   m_Name: Continental
   m_Shader: {fileID: 4800000, guid: 9809683c78abc3b4d840627b3b8abcdb, type: 3}
-  m_ShaderKeywords: _CLOUDS _COMPLEXCLOUDS _COMPLEX_CLOUDS _COMPLEX_CLOUDS_ON
+  m_ShaderKeywords: _CLOUDS _COMPLEXCLOUDS _COMPLEX_CLOUDS _COMPLEX_CLOUDS_ON _EMISSIVELIQUID_ON
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 1
   m_DoubleSidedGI: 0
@@ -195,7 +195,7 @@ Material:
     - _VegetationLowTempResistance: 0
     - _VegetationMultiplier: 1
     - _VegetationSpread: 0.167
-    - _WaterLevel: 0.61126256
+    - _WaterLevel: 0.28199995
     - _ZWrite: 1
     - _node_1376: 50
     - _node_3847: 0

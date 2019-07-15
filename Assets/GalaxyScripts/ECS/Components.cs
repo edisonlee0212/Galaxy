@@ -59,7 +59,7 @@ namespace Galaxy
         /// <summary>
         /// Color of the surface of the star
         /// </summary>
-        public Color Color;
+        public Vector4 Color;
     }
 
     [Serializable]
@@ -93,9 +93,9 @@ namespace Galaxy
         #region Public
         public float a;
         public float b;
-        public float tiltZ;
-        public float tiltX;
         public float tiltY;
+        public float tiltX;
+        public float tiltZ;
         public float speedMultiplier;
         public float3 centerPosition;
         public float3 orbitOffset;
@@ -104,13 +104,12 @@ namespace Galaxy
         public void SetPoint(float angle, ref Vector3 point)
         {
             point.x = Mathf.Sin(angle) * a;
-            point.y = Mathf.Cos(angle) * b;
-            point.z = 0;
+            point.y = 0;
+            point.z = Mathf.Cos(angle) * b;
             point = Quaternion.AngleAxis(angle, Vector3.forward) * point;
             point.x += centerPosition.x;
             point.y += centerPosition.y;
             point.z += centerPosition.z;
-
         }
         public Vector3 GetPoint(float time, bool star = true)
         {
@@ -118,11 +117,13 @@ namespace Galaxy
 
             Vector3 point = new Vector3();
             point.x = Mathf.Sin(angle) * a + orbitOffset.x;
-            point.y = Mathf.Cos(angle) * b + orbitOffset.y;
-            point.z = orbitOffset.z;
+            point.y = orbitOffset.y;
+            point.z = Mathf.Cos(angle) * b + orbitOffset.z;
+
+            point = Quaternion.AngleAxis(tiltX, Vector3.right) * point;
+            point = Quaternion.AngleAxis(tiltY, Vector3.up) * point;
             point = Quaternion.AngleAxis(tiltZ, Vector3.forward) * point;
-            point = Quaternion.AngleAxis(tiltX, Vector3.up) * point;
-            point = Quaternion.AngleAxis(tiltY, Vector3.right) * point;
+
             point.x += centerPosition.x;
             point.y += centerPosition.y;
             point.z += centerPosition.z;
@@ -140,15 +141,15 @@ namespace Galaxy
     public struct GalaxyPatternProperties
     {
         #region public
-        public float ZSpread;
-        public float XYSpread;
+        public float YSpread;
+        public float XZSpread;
         public float DiskA;
         public float DiskB;
         public float DiskSpeed;
         public Color DiskColor;
 
         public float CoreTiltX;
-        public float CoreTiltY;
+        public float CoreTiltZ;
         public float CoreEccentricity;
         public float CoreProportion;
         public float CoreSpeed;
@@ -156,7 +157,7 @@ namespace Galaxy
 
         public float MinimumRadius;
         public float CenterTiltX;
-        public float CenterTiltY;
+        public float CenterTiltZ;
         public float CenterSpeed;
         public Color CenterColor;
 
@@ -188,7 +189,7 @@ namespace Galaxy
                 orbit.a = CoreA + (DiskA - CoreA) * actualProportion;
                 orbit.b = CoreB + (DiskB - CoreB) * actualProportion;
                 orbit.tiltX = CoreTiltX * (1 - actualProportion);
-                orbit.tiltY = CoreTiltY * (1 - actualProportion);
+                orbit.tiltZ = CoreTiltZ * (1 - actualProportion);
                 orbit.speedMultiplier = CoreSpeed + (DiskSpeed - CoreSpeed) * actualProportion;
             }
             else
@@ -197,10 +198,10 @@ namespace Galaxy
                 orbit.a = (CoreA - MinimumRadius) * actualProportion + MinimumRadius;
                 orbit.b = (CoreB - MinimumRadius) * actualProportion + MinimumRadius;
                 orbit.tiltX = CenterTiltX - (CenterTiltX - CoreTiltX) * actualProportion;
-                orbit.tiltY = CenterTiltY - (CenterTiltY - CoreTiltY) * actualProportion;
+                orbit.tiltZ = CenterTiltZ - (CenterTiltZ - CoreTiltZ) * actualProportion;
                 orbit.speedMultiplier = (CoreSpeed - CenterSpeed) * actualProportion + CenterSpeed;
             }
-            orbit.tiltZ = Rotation * proportion;
+            orbit.tiltY = -Rotation * proportion;
             orbit.centerPosition = CenterPosition * (1 - proportion);
             orbit.orbitOffset = orbitOffset;
             return orbit;
@@ -211,9 +212,9 @@ namespace Galaxy
             float offset;
             offset = Mathf.Sqrt(1 - proportion);
             float3 orbitOffset;
-            orbitOffset.z = (float)Random.NextGaussianDouble(offset) * (DiskA + DiskB) * ZSpread;
-            orbitOffset.x = (float)Random.NextGaussianDouble(offset) * (DiskA + DiskB) * XYSpread;
-            orbitOffset.y = (float)Random.NextGaussianDouble(offset) * (DiskA + DiskB) * XYSpread;
+            orbitOffset.y = (float)Random.NextGaussianDouble(offset) * (DiskA + DiskB) * YSpread;
+            orbitOffset.x = (float)Random.NextGaussianDouble(offset) * (DiskA + DiskB) * XZSpread;
+            orbitOffset.z = (float)Random.NextGaussianDouble(offset) * (DiskA + DiskB) * XZSpread;
             return orbitOffset;
         }
 
