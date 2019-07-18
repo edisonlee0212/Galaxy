@@ -36,7 +36,7 @@ namespace Galaxy
         {
             m_GalaxySystem.CameraControl = m_CameraControl;
             m_GalaxySystem.Init(m_DensityWaveProperties);
-            m_TimeSpeed = 0.02f;
+            m_TimeSpeed = 0.001f;
             Debug.Assert(m_OrbitsAmount <= 100 && m_OrbitsAmount >= 10);
             m_OrbitObjects = new List<Orbit>();
             for (int i = 0; i < m_OrbitsAmount; i++)

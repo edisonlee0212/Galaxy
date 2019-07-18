@@ -7,141 +7,168 @@ namespace Galaxy
 {
     public class CameraControl : MonoBehaviour
     {
+        #region Attributes
         [SerializeField]
-        private Camera m_Camera;
+        private GameObject m_Grid;
 
-        [SerializeField]
-        private float m_DefaultCameraLookSpeed;
-        [SerializeField]
-        private float m_DefaultCameraMoveSpeed;
-
-        private bool isRotating;    // Is the camera being rotated?
-        private bool isPanning;
-        private EntityManager m_EntityManager;
-        private Entity m_FollowedEntity;
-        private float xAngle, yAngle;
-        private Quaternion rotation;
-        private float m_Timer;
+        private float m_CameraMoveSpeed;
+        private float x, y;
         private bool m_InTransition;
         private float m_TransitionTime;
-        private Vector3 m_PreviousCameraControlPosition;
-        private Quaternion m_PreviousCameraControlRotation;
-        private Vector3 m_PreviousCameraLocalPosition;
-        private Quaternion m_PreviousCameraLocalRotation;
+        private float m_Timer;
+        private Vector3 m_PreviousPosition;
+        private Quaternion m_PreviousRotation;
+        private Vector3 m_TargetPosition;
+        private Quaternion m_TargetRotation;
+        #endregion
+
+        #region Public
+        private Camera m_Camera;
+        private float m_DefaultCameraLookSpeed;
+        private float m_DefaultCameraMoveSpeed;
         private ViewType m_ViewType;
-        public float TransitionTimer { get => m_TransitionTime; set => m_TransitionTime = value; }
+        private float m_CenterDistance;
         public float DefaultCameraLookSpeed { get => m_DefaultCameraLookSpeed; set => m_DefaultCameraLookSpeed = value; }
         public float DefaultCameraMoveSpeed { get => m_DefaultCameraMoveSpeed; set => m_DefaultCameraMoveSpeed = value; }
-
-        public void SetCameraRotationX(float x)
+        public Camera Camera { get => m_Camera; set => m_Camera = value; }
+        public ViewType ViewType
         {
-            xAngle = x;
-            RotateCamera();
+            get => m_ViewType;
+            set
+            {
+                m_ViewType = value;
+            }
         }
-        public void SetCameraRotationY(float y)
+        public float CenterDistance { get => m_CenterDistance; set => m_CenterDistance = value; }
+        #endregion
+
+        private void Start()
         {
-            yAngle = y;
-            RotateCamera();
+            Camera = transform.GetChild(0).GetComponent<Camera>();
+            m_DefaultCameraLookSpeed = 1;
+            m_DefaultCameraMoveSpeed = 0.5f;
+            m_ViewType = ViewType.Galaxy;
+            m_CenterDistance = 10;
+            y = 36.87f;
         }
 
-        public void SetCameraFocus(float z)
+        static float ClampAngle(float angle, float min, float max)
         {
-            m_Camera.transform.localPosition = new Vector3(0, 0, z);
+            if (angle < -360)
+                angle += 360;
+            if (angle > 360)
+                angle -= 360;
+            return Mathf.Clamp(angle, min, max);
         }
 
-        private void RotateCamera()
+        public void StartTransition(float transitionTime, ViewType viewType)
         {
-            rotation = Quaternion.Euler(xAngle, yAngle, 0);
-            transform.rotation = rotation;
-        }
-
-        public void Follow(Entity entity, float transitionTime = -1)
-        {
-            UnFollow();
-            m_FollowedEntity = entity;
+            ViewType = viewType;
             m_InTransition = true;
-            transform.position = m_Camera.transform.position;
-            transform.rotation = m_Camera.transform.rotation;
-            if (transitionTime != -1) m_TransitionTime = transitionTime;
-            else m_TransitionTime = Mathf.Sqrt(Vector3.Distance(m_EntityManager.GetComponentData<Translation>(m_FollowedEntity).Value, m_Camera.transform.position)) / 10;
+            m_TransitionTime = transitionTime;
             m_Timer = m_TransitionTime;
-            
-            m_PreviousCameraControlPosition = transform.position;
-            m_PreviousCameraControlRotation = transform.rotation;
-            m_PreviousCameraLocalPosition = m_Camera.transform.localPosition;
-            m_PreviousCameraLocalRotation = m_Camera.transform.localRotation;
+            m_PreviousPosition = m_Camera.transform.localPosition;
+            m_PreviousRotation = m_Camera.transform.localRotation;
+            if (viewType == ViewType.StarSystem)
+            {
+                m_TargetPosition = new Vector3(0, 1.5f, -2f);
+                m_CenterDistance = 2.5f;
+            }
+            else if (viewType == ViewType.Planet)
+            {
+                m_TargetPosition = new Vector3(0, 0.15f, -0.2f);
+                m_CenterDistance = 0.25f;
+            }else
+            {
+                m_TargetPosition = new Vector3(0, 3f, -4f);
+                m_CenterDistance = 5f;
+            }
+            m_TargetRotation = Quaternion.Euler(36.87f, 0, 0);
+            y = 36.87f;
+            x = 0;
         }
 
-        public void Start()
-        {
-            m_EntityManager = World.Active.EntityManager;
-            m_FollowedEntity = Entity.Null;
-        }
-
-        public void UnFollow()
-        {
-            m_FollowedEntity = Entity.Null;
-        }
-        float moveSpeed;
         void Update()
         {
-            if (m_FollowedEntity != Entity.Null && !m_InTransition)
+            Vector3 position = transform.position;
+            if (!m_InTransition)
             {
-                var position = m_EntityManager.GetComponentData<LocalToWorld>(m_FollowedEntity).Value.c3;
-
-                transform.position = new Vector3(position.x, position.y, position.z);
-                //m_Camera.transform.LookAt(position);
-            }
-
-            if (Input.GetKey(KeyCode.LeftControl)) moveSpeed = 0.01f * DefaultCameraMoveSpeed;
-            else if (Input.GetKey(KeyCode.LeftShift)) moveSpeed = 2 * DefaultCameraMoveSpeed;
-            else moveSpeed = DefaultCameraMoveSpeed;
-            if (Input.GetMouseButtonDown(1)) isRotating = true;
-            if (Input.GetMouseButtonUp(1)) isRotating = false;
-            if (Input.GetMouseButtonDown(2)) isPanning = true;
-            if (Input.GetMouseButtonUp(2)) isPanning = false;
-            if (isRotating)
-            {
-                m_Camera.transform.Rotate(-Input.GetAxis("Mouse Y") * DefaultCameraLookSpeed, Input.GetAxis("Mouse X") * DefaultCameraLookSpeed, 0);
-            }
-
-            if (isPanning)
-            {
-                m_Camera.transform.localPosition -= m_Camera.transform.right * moveSpeed * Input.GetAxis("Mouse X") * DefaultCameraLookSpeed;
-                m_Camera.transform.localPosition -= m_Camera.transform.up * moveSpeed * Input.GetAxis("Mouse Y") * DefaultCameraLookSpeed;
-            }
-            m_Camera.transform.localPosition += m_Camera.transform.forward * moveSpeed * Input.GetAxis("Vertical");
-            m_Camera.transform.localPosition += m_Camera.transform.right * moveSpeed * Input.GetAxis("Horizontal");
-            m_Camera.transform.localPosition += m_Camera.transform.forward * moveSpeed * Input.GetAxis("Mouse ScrollWheel") * 150;
-
-            
-        }
-
-        private void FixedUpdate()
-        {
-            if (m_InTransition) MoveToGameObject();
-        }
-
-        private void MoveToGameObject()
-        {
-            if (m_FollowedEntity != Entity.Null)
-            {
-                if (m_Timer > 0)
+                if (ViewType == ViewType.Galaxy)
                 {
-                    m_Timer -= Time.fixedDeltaTime;
-                    float t = (1 - m_Timer / m_TransitionTime);
-                    transform.position = Vector3.Slerp(m_PreviousCameraControlPosition, m_EntityManager.GetComponentData<Translation>(m_FollowedEntity).Value, t);
-                    transform.rotation = Quaternion.Slerp(m_PreviousCameraControlRotation, m_EntityManager.GetComponentData<Rotation>(m_FollowedEntity).Value, t);
-                    m_Camera.transform.localPosition = Vector3.Slerp(m_PreviousCameraLocalPosition, new Vector3(0, 0, -30), t);
-                    m_Camera.transform.localRotation = Quaternion.Slerp(m_PreviousCameraLocalRotation, Quaternion.Euler(0, 0, 0), t);
+                    m_CenterDistance -= Input.GetAxis("Mouse ScrollWheel") * 0.5f;
+                    m_CenterDistance -= Input.GetAxis("QE") * 3f;
+                    m_CenterDistance = Mathf.Clamp(m_CenterDistance, 5f, 100f);
+                    if (Input.GetKey(KeyCode.LeftControl))
+                    {
+                        position.y -= Time.deltaTime * m_CenterDistance * 2;
+                    }
+                    else if (Input.GetKey(KeyCode.LeftShift))
+                    {
+                        position.y += Time.deltaTime * m_CenterDistance * 2;
+                    }
+                    m_CameraMoveSpeed = DefaultCameraMoveSpeed;
+                    Vector3 vertical = m_Camera.transform.forward;
+                    vertical.y = 0;
+                    Vector3 horizonal = m_Camera.transform.right;
+                    horizonal.y = 0;
+                    
+                    position += vertical.normalized * m_CameraMoveSpeed * Input.GetAxis("Vertical") * m_CenterDistance / 40;
+                    position += horizonal.normalized * m_CameraMoveSpeed * Input.GetAxis("Horizontal") * m_CenterDistance / 40;
+                    transform.position = position;
+                    
+                    if (Input.GetMouseButton(1))
+                    {
+                        x += Input.GetAxis("Mouse X") * 0.5f;
+                        y -= Input.GetAxis("Mouse Y") * 0.5f;
+                    }
+                    y = ClampAngle(y, -90, 90);
+                    Quaternion rotation = Quaternion.Euler(y, x, 0);
+                    Vector3 vTemp = new Vector3(0.0f, 0.0f, -m_CenterDistance);
+                    Camera.transform.localPosition = rotation * vTemp;
+                    Camera.transform.localRotation = rotation;
+                    m_Grid.GetComponent<MeshRenderer>().material.SetColor("_LineColor", Color.white * (40 - m_CenterDistance >= 0 ? (40 - m_CenterDistance) / 100 : 0));
+
                 }
                 else
                 {
-                    m_InTransition = false;
-                    m_Timer = 0;
-                    m_TransitionTime = 0;
+                    m_CenterDistance -= Input.GetAxis("Vertical") * 0.1f;
+                    m_CenterDistance -= Input.GetAxis("Mouse ScrollWheel") * 0.1f;
+                    if (m_ViewType == ViewType.StarSystem) m_CenterDistance = Mathf.Clamp(m_CenterDistance, 0.4f, 5);
+                    else m_CenterDistance = Mathf.Clamp(m_CenterDistance, 0.05f, 1);
+                    if (Input.GetMouseButton(1))
+                    {
+                        x += Input.GetAxis("Mouse X") * 0.5f;
+                        y -= Input.GetAxis("Mouse Y") * 0.5f;
+                    }
+                    y = ClampAngle(y, -90, 90);
+                    Quaternion rotation = Quaternion.Euler(y, x, 0);
+                    Vector3 vTemp = new Vector3(0.0f, 0.0f, -m_CenterDistance);
+                    Camera.transform.localPosition = rotation * vTemp;
+                    Camera.transform.localRotation = rotation;
                 }
+
             }
+            else
+            {
+                m_Timer -= Time.deltaTime;
+                if (m_Timer < 0)
+                {
+                    m_Timer = 0;
+                    m_InTransition = false;
+                }
+                Color c = Color.white;
+                //if (ViewType == ViewType.StarSystem) c.a = 0.2f * m_Timer / m_TransitionTime;
+                if (ViewType == ViewType.Galaxy) c.a = 0.2f * (1 - m_Timer / m_TransitionTime);
+                else c.a = 0;
+                transform.GetChild(1).GetComponent<MeshRenderer>().material.SetColor("_TintColor", c);
+                m_Grid.GetComponent<MeshRenderer>().material.SetColor("_LineColor", c * 0.5f);
+                float t = Mathf.Pow((m_TransitionTime - m_Timer) / m_TransitionTime, 0.25f);
+                m_Camera.transform.localPosition = Vector3.Lerp(m_PreviousPosition, m_TargetPosition, t);
+                m_Camera.transform.localRotation = Quaternion.Lerp(m_PreviousRotation, m_TargetRotation, t);
+            }
+            Vector3 gridPos = m_Grid.transform.position;
+            gridPos.y = position.y - 0.1f;
+            m_Grid.transform.position = gridPos;
         }
     }
 }

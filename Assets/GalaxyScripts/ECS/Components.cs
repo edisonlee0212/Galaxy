@@ -10,6 +10,12 @@ using UnityEngine;
 namespace Galaxy
 {
     [Serializable]
+    public struct BeaconProperties : IComponentData
+    {
+        public int Index;
+    }
+
+    [Serializable]
     public struct CustomRenderMesh : ISharedComponentData, IEquatable<CustomRenderMesh>
     {
         public Mesh Mesh;

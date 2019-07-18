@@ -34,10 +34,11 @@ namespace Galaxy {
         // Update is called once per frame
         void Update()
         {
-            if (Input.GetKeyDown(KeyCode.Space))
+            if (Input.GetKeyDown(KeyCode.H))
             {
-                transform.GetChild(0).gameObject.SetActive(m_Active);
                 m_Active = !m_Active;
+                transform.GetChild(0).gameObject.SetActive(m_Active);
+                
             }
         }
     }

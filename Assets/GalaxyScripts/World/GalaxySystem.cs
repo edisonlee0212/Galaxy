@@ -28,11 +28,17 @@ namespace Galaxy
         [SerializeField]
         private Material m_StarMaterial;
         [SerializeField]
+        private Material m_StarIndirectMaterial;
+        [SerializeField]
         private int m_StarAmount;
         [SerializeField]
         private Light m_Light;
         [SerializeField]
         private PlanetOrbits m_PlanetOrbits;
+        [SerializeField]
+        private Mesh m_BeaconMesh;
+        [SerializeField]
+        private Material m_BeaconMaterial;
         #endregion
 
         #region Public
@@ -44,6 +50,9 @@ namespace Galaxy
         public Galaxy Galaxy { get => m_Galaxy; set => m_Galaxy = value; }
         public CameraControl CameraControl { get => m_CameraControl; set => m_CameraControl = value; }
         public int MaxPlanetAmount { get => m_MaxPlanetAmount; set => m_MaxPlanetAmount = value; }
+        public Mesh BeaconMesh { get => m_BeaconMesh; set => m_BeaconMesh = value; }
+        public Material BeaconMaterial { get => m_BeaconMaterial; set => m_BeaconMaterial = value; }
+        public Material StarIndirectMaterial { get => m_StarIndirectMaterial; set => m_StarIndirectMaterial = value; }
         #endregion
 
         #region Managers
@@ -66,7 +75,7 @@ namespace Galaxy
             m_NebulasSystem.Init();
 
             //Create galaxy system
-            Galaxy = new Galaxy(m_MaxPlanetAmount, m_DensityWave, m_StarMesh, m_PlanetMesh, m_StarMaterial, m_PlanetGenerator, m_StarAmount, m_CameraControl, light, planetOrbits);
+            Galaxy = new Galaxy(m_MaxPlanetAmount, m_DensityWave, m_StarMesh, m_PlanetMesh, m_StarMaterial, m_StarIndirectMaterial, m_PlanetGenerator, m_StarAmount, m_CameraControl, light, planetOrbits, m_BeaconMaterial, m_BeaconMesh);
             Galaxy.Init();
         }
         #endregion
@@ -93,6 +102,7 @@ namespace Galaxy
         #region Attributes
         private PlanetTransformSimulationSystem m_PlanetPositionSimulationSystem;
         private StarRenderSystem m_StarRenderSystem;
+        private BeaconRenderSystem m_BeaconRenderSystem;
         #endregion
 
         #region Public
@@ -102,6 +112,7 @@ namespace Galaxy
         private int m_OrbitsAmount;
         private Mesh m_StarMesh;
         private Material m_StarMaterial;
+        private Material m_StarIndirectMaterial;
         private StarTransformSimulationSystem m_StarPositionSimulationSystem;
         private StarEngine m_StarEngine;
         private SelectionSystem m_SelectionSystem;
@@ -114,13 +125,15 @@ namespace Galaxy
         public int StarAmount { get => m_StarAmount; set => m_StarAmount = value; }
         public Material Material { get => m_StarMaterial; set => m_StarMaterial = value; }
         public Mesh StarMesh { get => m_StarMesh; set => m_StarMesh = value; }
+        public Material StarIndirectMaterial { get => m_StarIndirectMaterial; set => m_StarIndirectMaterial = value; }
         #endregion
 
         #region Managers
-        public Galaxy(int maxPlanetAmount, GalaxyPattern densityWave, Mesh starMesh, Mesh planetMesh, Material starMaterial, PlanetGenerator planetGenerator, int starAmount, CameraControl cameraControl, Light light, PlanetOrbits planetOrbits)
+        public Galaxy(int maxPlanetAmount, GalaxyPattern densityWave, Mesh starMesh, Mesh planetMesh, Material starMaterial, Material starIndirectMaterial, PlanetGenerator planetGenerator, int starAmount, CameraControl cameraControl, Light light, PlanetOrbits planetOrbits, Material beaconMaterial, Mesh beaconMesh)
         {
             m_StarAmount = starAmount;
             m_StarMaterial = starMaterial;
+            m_StarIndirectMaterial = starIndirectMaterial;
             m_StarMesh = starMesh;
 
             m_DensityWave = densityWave;
@@ -129,7 +142,7 @@ namespace Galaxy
             m_SelectionSystem = World.Active.GetOrCreateSystem<SelectionSystem>();
             m_StarEngine = World.Active.GetOrCreateSystem<StarEngine>();
             m_StarRenderSystem = World.Active.GetOrCreateSystem<StarRenderSystem>();
-
+            m_BeaconRenderSystem = World.Active.GetOrCreateSystem<BeaconRenderSystem>();
 
             m_SelectionSystem.CameraControl = cameraControl;
             m_SelectionSystem.Light = light;
@@ -149,7 +162,10 @@ namespace Galaxy
 
             m_StarRenderSystem.StarMesh = starMesh;
             m_StarRenderSystem.StarMaterial = starMaterial;
-            
+            m_StarRenderSystem.StarIndirectMaterial = starIndirectMaterial;
+            m_BeaconRenderSystem.BeaconMaterial = beaconMaterial;
+            m_BeaconRenderSystem.BeaconMesh = beaconMesh;
+
             m_PlanetPositionSimulationSystem.PlanetGenerator = planetGenerator;
             m_StarEngine.PlanetMesh = planetMesh;
         }
@@ -161,7 +177,7 @@ namespace Galaxy
             m_PlanetPositionSimulationSystem.Init();
             m_SelectionSystem.Init();
             m_StarRenderSystem.Init();
-
+            m_BeaconRenderSystem.Init();
         }
         #endregion
 
