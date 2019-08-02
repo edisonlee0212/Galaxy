@@ -35,9 +35,6 @@
 			#ifdef UNITY_PROCEDURAL_INSTANCING_ENABLED
 				float4x4 data = localToWorldBuffer[unity_InstanceID];
 				unity_ObjectToWorld = data;
-				unity_WorldToObject = data;
-				unity_WorldToObject._14_24_34 *= -1;
-				unity_WorldToObject._11_22_33 = 1.0f / unity_WorldToObject._11_22_33;
 			#endif
 		}
 

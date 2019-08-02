@@ -126,7 +126,9 @@ namespace Galaxy
                     Vector3 vTemp = new Vector3(0.0f, 0.0f, -m_CenterDistance);
                     Camera.transform.localPosition = rotation * vTemp;
                     Camera.transform.localRotation = rotation;
-                    m_Grid.GetComponent<MeshRenderer>().material.SetColor("_LineColor", Color.white * (40 - m_CenterDistance >= 0 ? (40 - m_CenterDistance) / 100 : 0));
+                    int distance = 80;
+                    m_Grid.transform.GetChild(0).GetComponent<MeshRenderer>().material.SetColor("_LineColor", Color.white * (distance - m_CenterDistance >= 0 ? (distance - m_CenterDistance) / 200 : 0));
+                    m_Grid.transform.GetChild(1).GetComponent<MeshRenderer>().material.SetColor("_LineColor", Color.white * (distance - m_CenterDistance >= 0 ? (distance - m_CenterDistance) / 200 : 0));
 
                 }
                 else
@@ -161,7 +163,8 @@ namespace Galaxy
                 if (ViewType == ViewType.Galaxy) c.a = 0.2f * (1 - m_Timer / m_TransitionTime);
                 else c.a = 0;
                 transform.GetChild(1).GetComponent<MeshRenderer>().material.SetColor("_TintColor", c);
-                m_Grid.GetComponent<MeshRenderer>().material.SetColor("_LineColor", c * 0.5f);
+                m_Grid.transform.GetChild(0).GetComponent<MeshRenderer>().material.SetColor("_LineColor", c * 0.5f);
+                m_Grid.transform.GetChild(1).GetComponent<MeshRenderer>().material.SetColor("_LineColor", c * 0.5f);
                 float t = Mathf.Pow((m_TransitionTime - m_Timer) / m_TransitionTime, 0.25f);
                 m_Camera.transform.localPosition = Vector3.Lerp(m_PreviousPosition, m_TargetPosition, t);
                 m_Camera.transform.localRotation = Quaternion.Lerp(m_PreviousRotation, m_TargetRotation, t);

@@ -22,6 +22,8 @@ namespace Galaxy
         private GalaxyPatternProperties m_DensityWaveProperties;
         [SerializeField]
         private Settings m_Settings;
+        [SerializeField]
+        private StarMarker m_StarMarker;
         #endregion
 
 
@@ -35,6 +37,7 @@ namespace Galaxy
         void Start()
         {
             m_GalaxySystem.CameraControl = m_CameraControl;
+            m_GalaxySystem.StarMarker = m_StarMarker;
             m_GalaxySystem.Init(m_DensityWaveProperties);
             m_TimeSpeed = 0.001f;
             Debug.Assert(m_OrbitsAmount <= 100 && m_OrbitsAmount >= 10);

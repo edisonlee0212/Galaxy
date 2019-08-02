@@ -14,8 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp:Galaxy:GalaxySystem
   m_PlanetGenerator: {fileID: 11400000, guid: 8b7252982de35c2408d427f26bc0b948, type: 2}
   m_NebulasSystem: {fileID: 11400000, guid: da1268086b333d8418e93f82e7e2924a, type: 2}
-  m_StarMesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
-  m_PlanetMesh: {fileID: 4300004, guid: 6b6576c89e239564cbd67d8bfc8dd787, type: 3}
+  m_StarMesh: {fileID: 4300004, guid: 6b6576c89e239564cbd67d8bfc8dd787, type: 3}
+  m_PlanetMesh: {fileID: 4300002, guid: c26f7062dd385b44c82391b5199d5372, type: 3}
   m_StarMaterial: {fileID: 2100000, guid: 08773c71f7c042d4eb027c192265b17d, type: 2}
   m_StarIndirectMaterial: {fileID: 2100000, guid: a106c65558698014aac948099969b232,
     type: 2}

@@ -240,6 +240,5 @@ namespace Galaxy
             }
             return color;
         }
-
     }
 }
