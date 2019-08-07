@@ -15,6 +15,7 @@ namespace Galaxy
         public int Index;
     }
 
+
     [Serializable]
     public struct CustomRenderMesh : ISharedComponentData, IEquatable<CustomRenderMesh>
     {
@@ -103,37 +104,58 @@ namespace Galaxy
         public float tiltX;
         public float tiltZ;
         public float speedMultiplier;
-        public float3 centerPosition;
-        public float3 orbitOffset;
+        public Vector3 centerPosition;
+        public Vector3 orbitOffset;
         #endregion
 
-        public void SetPoint(float angle, ref Vector3 point)
+        public void SetPoint(float angle, ref double3 point)
         {
-            point.x = Mathf.Sin(angle) * a;
+            point.x = Math.Sin(angle) * a;
             point.y = 0;
-            point.z = Mathf.Cos(angle) * b;
-            point = Quaternion.AngleAxis(angle, Vector3.forward) * point;
+            point.z = Math.Cos(angle) * b;
+            point = Rotate(Quaternion.AngleAxis(angle, Vector3.forward), point);
             point.x += centerPosition.x;
             point.y += centerPosition.y;
             point.z += centerPosition.z;
         }
-        public Vector3 GetPoint(float time, bool star = true)
+        public double3 GetPoint(double time, bool star = true)
         {
-            float angle = star ? time / Mathf.Sqrt(a + b) * speedMultiplier : time;
+            double angle = star ? time / Math.Sqrt(a + b) * speedMultiplier : time;
 
-            Vector3 point = new Vector3();
-            point.x = Mathf.Sin(angle) * a + orbitOffset.x;
+            double3 point = new double3();
+            point.x = Math.Sin(angle) * a + orbitOffset.x;
             point.y = orbitOffset.y;
-            point.z = Mathf.Cos(angle) * b + orbitOffset.z;
+            point.z = Math.Cos(angle) * b + orbitOffset.z;
 
-            point = Quaternion.AngleAxis(tiltX, Vector3.right) * point;
-            point = Quaternion.AngleAxis(tiltY, Vector3.up) * point;
-            point = Quaternion.AngleAxis(tiltZ, Vector3.forward) * point;
+            point = Rotate(Quaternion.AngleAxis(tiltX, Vector3.right), point);
+            point = Rotate(Quaternion.AngleAxis(tiltY, Vector3.up), point);
+            point = Rotate(Quaternion.AngleAxis(tiltZ, Vector3.forward), point);
 
             point.x += centerPosition.x;
             point.y += centerPosition.y;
             point.z += centerPosition.z;
             return point;
+        }
+
+        private double3 Rotate(Quaternion rotation, double3 point)
+        {
+            double x = rotation.x * 2D;
+            double y = rotation.y * 2D;
+            double z = rotation.z * 2D;
+            double xx = rotation.x * x;
+            double yy = rotation.y * y;
+            double zz = rotation.z * z;
+            double xy = rotation.x * y;
+            double xz = rotation.x * z;
+            double yz = rotation.y * z;
+            double wx = rotation.w * x;
+            double wy = rotation.w * y;
+            double wz = rotation.w * z;
+            double3 res;
+            res.x = (1D - (yy + zz)) * point.x + (xy - wz) * point.y + (xz + wy) * point.z;
+            res.y = (xy + wz) * point.x + (1D - (xx + zz)) * point.y + (yz - wx) * point.z;
+            res.z = (xz - wy) * point.x + (yz + wx) * point.y + (1D - (xx + yy)) * point.z;
+            return res;
         }
     }
 

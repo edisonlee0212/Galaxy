@@ -87,11 +87,10 @@ namespace Galaxy
             [ReadOnly] public GalaxyPatternProperties properties;
             public void Execute([ReadOnly] ref StarProperties c0, [WriteOnly] ref Translation c1, [ReadOnly] ref OrbitProperties c3, [WriteOnly] ref Scale c4, [WriteOnly] ref CustomColor c5)
             {
-                c1.Value = c3.GetPoint((c0.StartingTime + currentTime));
+                c1.Value = (float3)c3.GetPoint((c0.StartingTime + currentTime));
                 float distance = Vector3.Distance(cameraPosition, c1.Value);
-                Vector4 color = properties.GetColor(c0.Proportion);
+                Vector4 color = properties.GetColor((float)c0.Proportion);
                 color = color.normalized * 2;
-                //Color color = Color.white;
                 if (distance < 40)
                 {
                     distance = 40;
@@ -106,7 +105,7 @@ namespace Galaxy
                 {
                     c5.Color = ((c0.Color * 20 + (Vector4)Color.white * 20 + color * (distance - 40)) / distance).normalized * 1.8f;
                 }
-                c4.Value = c0.Mass * distance / 40;
+                c4.Value = (float)c0.Mass * distance / 40;
             }
 
         }
@@ -116,7 +115,7 @@ namespace Galaxy
             [ReadOnly] public GalaxyPatternProperties densityWaveProperties;
             public void Execute(Entity entity, int index, [ReadOnly] ref StarProperties c0, [WriteOnly] ref OrbitProperties c1)
             {
-                c1 = densityWaveProperties.GetOrbit(c0.Proportion, c0.OrbitOffset);
+                c1 = densityWaveProperties.GetOrbit((float)c0.Proportion, (float3)c0.OrbitOffset);
             }
         }
         #endregion
@@ -289,8 +288,8 @@ namespace Galaxy
             {
                 if (index < planetAmount)
                 {
-                    c1.Value = c4.GetPoint(time + c0.StartTime);
-                    c2.Value = Quaternion.AngleAxis(time * 10000, Quaternion.AngleAxis(c4.tiltZ, Vector3.forward) * Quaternion.AngleAxis(c4.tiltX, Vector3.right) * Vector3.up);
+                    c1.Value = (float3)c4.GetPoint(time + c0.StartTime);
+                    c2.Value = Quaternion.AngleAxis(time * 10000, Quaternion.AngleAxis((float)c4.tiltZ, Vector3.forward) * Quaternion.AngleAxis((float)c4.tiltX, Vector3.right) * Vector3.up);
                 }
             }
         }
@@ -587,6 +586,7 @@ namespace Galaxy
                     m_StarRenderSystem.SelectedStarEntity = m_SelectedEntity;
                     m_PlanetPositionSimulationSystem.ResetEntity(m_LockedStarEntity);
                     m_Light.enabled = true;
+                    m_BeaconRenderSystem.BeaconAmount = 0;
                     m_InTransition = true;
                     m_TransitionTime = Mathf.Pow(Vector3.Distance(m_MainCamera.transform.position, EntityManager.GetComponentData<LocalToWorld>(m_SelectedEntity).Position), 0.25f) / 2;
                     m_Timer = m_TransitionTime;
@@ -617,6 +617,7 @@ namespace Galaxy
                     {
                         m_InTransition = true;
                         m_BeaconRenderSystem.BeaconAmount = 0;
+                        
                         m_TransitionTime = Mathf.Pow(Vector3.Distance(m_MainCamera.transform.position, EntityManager.GetComponentData<LocalToWorld>(m_SelectedEntity).Position), 0.25f) / 2;
                         m_Timer = m_TransitionTime;
                         m_PreviousPosition = m_CameraControl.transform.position;

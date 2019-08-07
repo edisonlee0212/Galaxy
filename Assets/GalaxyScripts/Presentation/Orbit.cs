@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using Unity.Mathematics;
 using UnityEngine;
 namespace Galaxy
 {
@@ -23,7 +24,7 @@ namespace Galaxy
             for(int i = 0; i < pointAmount; i++)
             {
                 float angle = ((float)i / pointAmount) * 360 * Mathf.Deg2Rad;
-                points[i] = orbit.GetPoint(angle, false);
+                points[i] = (float3)orbit.GetPoint(angle, false);
                 
             }
             points[pointAmount] = points[0];

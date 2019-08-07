@@ -37,7 +37,7 @@ namespace Galaxy
                 var orbit = m_DensityWave.GetOrbit(proportion * proportion, float3.zero);
                 float startTime = Random.Next();
                 startTimes[i] = startTime;
-                vertices[i] = orbit.GetPoint((startTime) * 100);
+                vertices[i] = (float3)orbit.GetPoint((startTime) * 100);
                 vertices[i].z += m_DensityWave.GetOrbitOffset(proportion).z;
             }
             mesh.vertices = vertices;

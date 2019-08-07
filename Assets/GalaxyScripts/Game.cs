@@ -60,7 +60,7 @@ namespace Galaxy
 
         #region Methods
         /// <summary>
-        /// To recalculate the orbit, and to reset every star.
+        /// To recalculate the orbit, and to resetsion every star.
         /// </summary>
         public void Recalculate()
         {
