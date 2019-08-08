@@ -15,6 +15,10 @@ namespace Galaxy
         private bool m_InTransition;
         private float m_TransitionTime;
         private float m_Timer;
+        private Vector3 m_PreviousCameraPosition;
+        private Quaternion m_PreviousCameraRotation;
+        private Vector3 m_TargetCameraPosition;
+        private Quaternion m_TargetCameraRotation;
         private Vector3 m_PreviousPosition;
         private Quaternion m_PreviousRotation;
         private Vector3 m_TargetPosition;
@@ -22,6 +26,7 @@ namespace Galaxy
         private EntityManager m_EntityManager;
         private OrbitProperties m_CurrentPlanetOrbitProperties;
         private PlanetProperties m_CurrentPlanetProperties;
+        private Transform m_CurrentSelectedPlanetHolder;
         #endregion
 
         #region Public
@@ -31,6 +36,7 @@ namespace Galaxy
         private float m_DefaultCameraMoveSpeed;
         private ViewType m_ViewType;
         private float m_CenterDistance;
+        private PlanetarySystem m_PlanetarySystem;
         private Entity m_PlanetEntity;
         public float DefaultCameraLookSpeed { get => m_DefaultCameraLookSpeed; set => m_DefaultCameraLookSpeed = value; }
         public float DefaultCameraMoveSpeed { get => m_DefaultCameraMoveSpeed; set => m_DefaultCameraMoveSpeed = value; }
@@ -44,7 +50,9 @@ namespace Galaxy
             }
         }
         public float CenterDistance { get => m_CenterDistance; set => m_CenterDistance = value; }
-        public Entity PlanetEntity { get => m_PlanetEntity;
+        public Entity PlanetEntity
+        {
+            get => m_PlanetEntity;
             set
             {
                 m_PlanetEntity = value;
@@ -55,13 +63,25 @@ namespace Galaxy
                 }
             }
         }
+
+        public PlanetarySystem PlanetarySystem { get => m_PlanetarySystem; set => m_PlanetarySystem = value; }
+        public Transform CurrentSelectedPlanetHolder { get => m_CurrentSelectedPlanetHolder;
+            set
+            {
+                if (m_CurrentSelectedPlanetHolder != value)
+                {
+                    m_CurrentSelectedPlanetHolder = value;
+                    StarMarker.Target = m_CurrentSelectedPlanetHolder;
+                }
+            }
+        }
         #endregion
 
         private void Start()
         {
             Camera = transform.GetChild(0).GetComponent<Camera>();
             m_DefaultCameraLookSpeed = 1;
-            m_DefaultCameraMoveSpeed = 5f;
+            m_DefaultCameraMoveSpeed = 2f;
             m_ViewType = ViewType.Galaxy;
             m_CenterDistance = 10;
             y = 36.87f;
@@ -79,42 +99,62 @@ namespace Galaxy
 
         public void StartTransition(float transitionTime, ViewType viewType)
         {
-            ViewType = viewType;
+            m_ViewType = viewType;
             m_InTransition = true;
             m_TransitionTime = transitionTime;
             m_Timer = m_TransitionTime;
-            m_PreviousPosition = m_Camera.transform.localPosition;
-            m_PreviousRotation = m_Camera.transform.localRotation;
+            m_PreviousCameraPosition = m_Camera.transform.localPosition;
+            m_PreviousCameraRotation = m_Camera.transform.localRotation;
             if (viewType == ViewType.StarSystem)
             {
-                m_TargetPosition = new Vector3(0, 1.5f, -2f);
+                m_TargetCameraPosition = new Vector3(0, 1.5f, -2f);
+                m_PreviousPosition = transform.localPosition;
+                m_TargetPosition = Vector3.zero;
                 m_CenterDistance = 2.5f;
             }
             else if (viewType == ViewType.Planet)
             {
-                m_TargetPosition = new Vector3(0, 0.15f, -0.2f);
+                m_TargetCameraPosition = new Vector3(0, 0.15f, -0.2f);
+                m_PreviousPosition = transform.localPosition;
+                m_TargetPosition = Vector3.zero;
                 m_CenterDistance = 0.25f;
             }
             else
             {
-                m_TargetPosition = new Vector3(0, 3f, -4f);
+                m_TargetCameraPosition = new Vector3(0, 3f, -4f);
                 m_CenterDistance = 5f;
             }
-            m_TargetRotation = Quaternion.Euler(36.87f, 0, 0);
+            m_TargetCameraRotation = Quaternion.Euler(36.87f, 0, 0);
             y = 36.87f;
             x = 0;
         }
 
-        void Update()
+        protected void FixedUpdate()
+        {
+            
+            if (m_ViewType == ViewType.StarSystem)
+            {
+                
+                Ray ray = m_Camera.ScreenPointToRay(Input.mousePosition);
+                RaycastHit hit = new RaycastHit();
+                if (Physics.Raycast(ray.origin, ray.direction, out hit))
+                {
+                    GameObject gameObject = hit.collider.gameObject;
+                    if (gameObject.CompareTag("PlanetHolder"))
+                    {
+                        CurrentSelectedPlanetHolder = gameObject.GetComponent<PlanetHolder>().transform;
+                        
+                    }
+                }
+            }
+        }
+
+        protected void Update()
         {
             Vector3 position = transform.position;
             if (!m_InTransition)
             {
-                if (PlanetEntity != Entity.Null)
-                {
-                    transform.position = (float3)m_CurrentPlanetOrbitProperties.GetPoint(PlanetTransformSimulationSystem.Time + m_CurrentPlanetProperties.StartTime);
-                }
-                else transform.position = Vector3.zero;
+
                 if (ViewType == ViewType.Galaxy)
                 {
                     m_CenterDistance -= Input.GetAxis("Mouse ScrollWheel") * 0.5f;
@@ -156,8 +196,34 @@ namespace Galaxy
                 {
                     m_CenterDistance -= Input.GetAxis("Vertical") * 0.1f;
                     m_CenterDistance -= Input.GetAxis("Mouse ScrollWheel") * 0.1f;
-                    if (m_ViewType == ViewType.StarSystem) m_CenterDistance = Mathf.Clamp(m_CenterDistance, 0.4f, 5);
-                    else m_CenterDistance = Mathf.Clamp(m_CenterDistance, 0.05f, 1);
+                    if (m_ViewType == ViewType.StarSystem)
+                    {
+                        if (Input.GetKeyDown(KeyCode.Escape))
+                        {
+                            StartTransition(0.5f, ViewType.Galaxy);
+                            CurrentSelectedPlanetHolder = null;
+                            return;
+                        }
+                        else if (CurrentSelectedPlanetHolder != null && Input.GetKeyDown(KeyCode.F))
+                        {
+                            transform.SetParent(CurrentSelectedPlanetHolder);
+                            CurrentSelectedPlanetHolder = null;
+                            StartTransition(0.5f, ViewType.Planet);
+                            return;
+                        }
+                        m_CenterDistance = Mathf.Clamp(m_CenterDistance, 0.4f, 5);
+                    }
+                    else
+                    {
+                        if (Input.GetKeyDown(KeyCode.Escape))
+                        {
+                            transform.SetParent(null);
+                            CurrentSelectedPlanetHolder = null;
+                            StartTransition(0.5f, ViewType.StarSystem);
+                            return;
+                        }
+                        m_CenterDistance = Mathf.Clamp(m_CenterDistance, 0.02f, 1);
+                    }
                     if (Input.GetMouseButton(1))
                     {
                         x += Input.GetAxis("Mouse X") * 0.5f;
@@ -178,17 +244,27 @@ namespace Galaxy
                 {
                     m_Timer = 0;
                     m_InTransition = false;
+                    if (ViewType == ViewType.Galaxy)
+                    {
+                        StarTransformSimulationSystem.FollowedStar = Entity.Null;
+                        m_PlanetarySystem.Reset(Entity.Null);
+                        SelectionSystem.ViewType = ViewType.Galaxy;
+                    }
                 }
+                float t = Mathf.Pow((m_TransitionTime - m_Timer) / m_TransitionTime, 0.25f);
+                m_Camera.transform.localPosition = Vector3.Lerp(m_PreviousCameraPosition, m_TargetCameraPosition, t);
+                m_Camera.transform.localRotation = Quaternion.Lerp(m_PreviousCameraRotation, m_TargetCameraRotation, t);
+
                 Color c = Color.white;
-                //if (ViewType == ViewType.StarSystem) c.a = 0.2f * m_Timer / m_TransitionTime;
                 if (ViewType == ViewType.Galaxy) c.a = 0.2f * (1 - m_Timer / m_TransitionTime);
-                else c.a = 0;
+                else
+                {
+                    transform.localPosition = Vector3.Lerp(m_PreviousPosition, m_TargetPosition, t);
+                    c.a = 0;
+                }
                 transform.GetChild(1).GetComponent<MeshRenderer>().material.SetColor("_TintColor", c);
                 m_Grid.transform.GetChild(0).GetComponent<MeshRenderer>().material.SetColor("_LineColor", c * 0.5f);
                 m_Grid.transform.GetChild(1).GetComponent<MeshRenderer>().material.SetColor("_LineColor", c * 0.5f);
-                float t = Mathf.Pow((m_TransitionTime - m_Timer) / m_TransitionTime, 0.25f);
-                m_Camera.transform.localPosition = Vector3.Lerp(m_PreviousPosition, m_TargetPosition, t);
-                m_Camera.transform.localRotation = Quaternion.Lerp(m_PreviousRotation, m_TargetRotation, t);
             }
             Vector3 gridPos = m_Grid.transform.position;
             gridPos.y = position.y - 0.1f;

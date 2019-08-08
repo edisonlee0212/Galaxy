@@ -39,12 +39,13 @@ namespace Galaxy
         private Mesh m_BeaconMesh;
         [SerializeField]
         private Material m_BeaconMaterial;
-
+        
         private StarRenderSystem m_StarRenderSystem;
         private BeaconRenderSystem m_BeaconRenderSystem;
         #endregion
 
         #region Public
+        private PlanetarySystem m_PlanetarySystem;
         private SelectionSystem m_SelectionSystem;
         private CameraControl m_CameraControl;
         private GalaxyPattern m_DensityWave;
@@ -60,19 +61,21 @@ namespace Galaxy
         public Material StarIndirectMaterial { get => m_StarIndirectMaterial; set => m_StarIndirectMaterial = value; }
         public SelectionSystem SelectionSystem { get => m_SelectionSystem; set => m_SelectionSystem = value; }
         public StarMarker StarMarker { get => m_StarMarker; set => m_StarMarker = value; }
+        public PlanetarySystem PlanetarySystem { get => m_PlanetarySystem; set => m_PlanetarySystem = value; }
         #endregion
 
         #region Managers
         public void Init(GalaxyPatternProperties m_DensityWaveProperties, int maxPlanetAmount = 20)
         {
             m_MaxPlanetAmount = maxPlanetAmount;
-
+            m_PlanetarySystem.MaxPlanetAmount = maxPlanetAmount;
             //Create density wave
             DensityWave = new GalaxyPattern(m_DensityWaveProperties);
 
             //Prepare star system
             Light light = Instantiate(m_Light);
             light.enabled = false;
+            m_PlanetarySystem.Light = light;
             PlanetOrbits planetOrbits = Instantiate(m_PlanetOrbits);
             planetOrbits.MaxPlanetAmount = MaxPlanetAmount;
             planetOrbits.Init();
@@ -84,13 +87,13 @@ namespace Galaxy
 
             //Create galaxy system
             Galaxy = new Galaxy(m_MaxPlanetAmount, m_DensityWave, m_PlanetMesh, m_PlanetGenerator, m_StarAmount, planetOrbits);
+            Galaxy.PlanetarySystem = PlanetarySystem;
             Galaxy.Init();
 
             //Create selection system
             m_SelectionSystem = World.Active.GetOrCreateSystem<SelectionSystem>();
             m_SelectionSystem.CameraControl = m_CameraControl;
-            m_SelectionSystem.Light = light;
-            m_SelectionSystem.PlanetOrbits = planetOrbits;
+            m_SelectionSystem.PlanetarySystem = m_PlanetarySystem;
             m_SelectionSystem.StarMarker = m_StarMarker;
             m_SelectionSystem.Init();
 
@@ -110,6 +113,14 @@ namespace Galaxy
         }
         #endregion
 
+        private void OnDestroy()
+        {
+            m_Galaxy.Destroy();
+            m_SelectionSystem.Enabled = false;
+            m_StarRenderSystem.Enabled = false;
+            m_BeaconRenderSystem.Enabled = false;
+        }
+
         #region Methods
         public void AddTime(float time)
         {
@@ -125,8 +136,8 @@ namespace Galaxy
     public class Galaxy
     {
         #region Attributes
-        private PlanetTransformSimulationSystem m_PlanetPositionSimulationSystem;
-        
+        //private PlanetTransformSimulationSystem m_PlanetPositionSimulationSystem;
+        private PlanetarySystem m_PlanetarySystem;
         #endregion
 
         #region Public
@@ -136,12 +147,15 @@ namespace Galaxy
         private GalaxyPattern m_DensityWave;
         private StarTransformSimulationSystem m_StarPositionSimulationSystem;
         private StarEngine m_StarEngine;
+        private PlanetOrbits m_PlanetOrbits;
         public GalaxyPattern DensityWave { get => m_DensityWave; set => m_DensityWave = value; }
         public int OrbitsAmount { get => m_OrbitsAmount; set => m_OrbitsAmount = value; }
         public StarTransformSimulationSystem StarPositionSimulationSystem { get => m_StarPositionSimulationSystem; set => m_StarPositionSimulationSystem = value; }
         public float Time { get => m_Time; }
         public StarEngine StarEngine { get => m_StarEngine; set => m_StarEngine = value; }
         public int StarAmount { get => m_StarAmount; set => m_StarAmount = value; }
+        public PlanetarySystem PlanetarySystem { get => m_PlanetarySystem; set => m_PlanetarySystem = value; }
+        public PlanetOrbits PlanetOrbits { get => m_PlanetOrbits; set => m_PlanetOrbits = value; }
 
         #endregion
 
@@ -149,25 +163,26 @@ namespace Galaxy
         public Galaxy(int maxPlanetAmount, GalaxyPattern densityWave, Mesh planetMesh, PlanetGenerator planetGenerator, int starAmount, PlanetOrbits planetOrbits)
         {
             m_StarAmount = starAmount;
-
+            m_PlanetOrbits = planetOrbits;
             m_DensityWave = densityWave;
             m_StarPositionSimulationSystem = World.Active.GetOrCreateSystem<StarTransformSimulationSystem>();
-            m_PlanetPositionSimulationSystem = World.Active.GetOrCreateSystem<PlanetTransformSimulationSystem>();
+            //m_PlanetPositionSimulationSystem = World.Active.GetOrCreateSystem<PlanetTransformSimulationSystem>();
             
             m_StarEngine = World.Active.GetOrCreateSystem<StarEngine>();
 
+
+            //m_PlanetPositionSimulationSystem.PlanetOrbits = planetOrbits;
             
-            m_PlanetPositionSimulationSystem.PlanetOrbits = planetOrbits;
             m_StarPositionSimulationSystem.DiscreteSimulationTimeStep = 0.02f;
             m_StarPositionSimulationSystem.ContinuousSimulation = true;
 
             m_StarPositionSimulationSystem.DensityWave = m_DensityWave;
             m_StarEngine.DensityWave = m_DensityWave;
-            m_PlanetPositionSimulationSystem.DensityWave = m_DensityWave;
+            //m_PlanetPositionSimulationSystem.DensityWave = m_DensityWave;
             m_StarEngine.StarAmount = starAmount;
             
             m_StarEngine.MaxPlanetAmount = maxPlanetAmount;
-            m_PlanetPositionSimulationSystem.PlanetGenerator = planetGenerator;
+            //m_PlanetPositionSimulationSystem.PlanetGenerator = planetGenerator;
             m_StarEngine.PlanetMesh = planetMesh;
         }
 
@@ -175,9 +190,16 @@ namespace Galaxy
         {
             m_StarEngine.Init();
             m_StarPositionSimulationSystem.Init();
-            m_PlanetPositionSimulationSystem.Init();
-            
+            //m_PlanetPositionSimulationSystem.Init();
+            m_PlanetarySystem.PlanetOrbits = m_PlanetOrbits;
+            m_PlanetarySystem.Init();
         }
+        
+        public void Destroy()
+        {
+            m_StarPositionSimulationSystem.Enabled = false;
+        }
+
         #endregion
 
         #region Methods

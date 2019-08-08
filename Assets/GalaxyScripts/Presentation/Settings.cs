@@ -12,7 +12,7 @@ namespace Galaxy {
 
         public void Init(GalaxyPatternProperties densityWaveProperties, float timeSpeed, bool displayOrbit)
         {
-            m_List = transform.GetChild(0).gameObject;
+            m_List = transform.GetChild(1).gameObject;
             m_List.transform.GetChild(0).GetComponent<Toggle>().isOn = displayOrbit;
             m_List.transform.GetChild(1).GetComponentInChildren<Slider>().value = densityWaveProperties.DiskSpeed;
             m_List.transform.GetChild(2).GetComponentInChildren<Slider>().value = densityWaveProperties.CoreSpeed;
@@ -28,6 +28,7 @@ namespace Galaxy {
             m_List.transform.GetChild(12).GetComponentInChildren<Slider>().value = densityWaveProperties.CoreProportion;
             m_List.transform.GetChild(13).GetComponentInChildren<Slider>().value = timeSpeed;
             m_List.transform.GetChild(14).GetComponentInChildren<Slider>().value = densityWaveProperties.CoreEccentricity;
+            transform.GetChild(1).gameObject.SetActive(m_Active);
             transform.GetChild(0).gameObject.SetActive(m_Active);
         }
 
@@ -38,7 +39,7 @@ namespace Galaxy {
             {
                 m_Active = !m_Active;
                 transform.GetChild(0).gameObject.SetActive(m_Active);
-                
+                transform.GetChild(1).gameObject.SetActive(m_Active);
             }
         }
     }

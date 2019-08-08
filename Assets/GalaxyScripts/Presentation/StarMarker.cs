@@ -18,6 +18,8 @@ namespace Galaxy
         private EntityManager m_EntityManager;
 
         private Entity m_Entity;
+        public static Transform Target;
+
         public Entity Entity
         {
             get => m_Entity;
@@ -44,19 +46,27 @@ namespace Galaxy
             m_Camera = Camera.main;
             m_EntityManager = World.Active.EntityManager;
             Entity = Entity.Null;
+            Target = null;
         }
         // Update is called once per frame
 
         void Update()
         {
-            if (Entity == Entity.Null)
+            if(m_Entity != Entity.Null)
             {
-                transform.position = new Vector3(2000, 0, 0);
+                float4 pos = m_EntityManager.GetComponentData<LocalToWorld>(m_Entity).Value.c3;
+                var position = m_Camera.WorldToScreenPoint(new Vector3(pos.x, pos.y, pos.z));
+                position.z = 0;
+                transform.position = position;
+            }else if(Target != null)
+            {
+                var position = m_Camera.WorldToScreenPoint(Target.position);
+                position.z = 0;
+                transform.position = position;
             }
             else
             {
-                float4 pos = m_EntityManager.GetComponentData<LocalToWorld>(m_Entity).Value.c3;
-                transform.position = m_Camera.WorldToScreenPoint(new Vector3(pos.x, pos.y, pos.z));
+                transform.position = new Vector3(20000, 0, 0);
             }
         }
     }

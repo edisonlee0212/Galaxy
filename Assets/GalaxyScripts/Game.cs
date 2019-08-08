@@ -24,9 +24,11 @@ namespace Galaxy
         private Settings m_Settings;
         [SerializeField]
         private StarMarker m_StarMarker;
+        [SerializeField]
+        private PlanetarySystem m_PlanetarySystemPrefab;
         #endregion
 
-
+        private PlanetarySystem m_PlanetarySystem;
         private bool m_DisplayOrbits;
         private List<Orbit> m_OrbitObjects;
         private GalaxyPattern m_DensityWave;
@@ -36,8 +38,11 @@ namespace Galaxy
         // Start is called before the first frame update
         void Start()
         {
+            m_PlanetarySystem = Instantiate(m_PlanetarySystemPrefab, Vector3.zero, Quaternion.identity);
+            m_CameraControl.PlanetarySystem = m_PlanetarySystem;
             m_GalaxySystem.CameraControl = m_CameraControl;
             m_GalaxySystem.StarMarker = m_StarMarker;
+            m_GalaxySystem.PlanetarySystem = m_PlanetarySystem;
             m_GalaxySystem.Init(m_DensityWaveProperties);
             m_TimeSpeed = 0.001f;
             Debug.Assert(m_OrbitsAmount <= 100 && m_OrbitsAmount >= 10);
