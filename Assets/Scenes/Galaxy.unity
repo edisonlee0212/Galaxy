@@ -15066,7 +15066,7 @@ Camera:
     width: 1
     height: 1
   near clip plane: 0.01
-  far clip plane: 5000
+  far clip plane: 30000
   field of view: 60
   orthographic: 0
   orthographic size: 5
@@ -16631,7 +16631,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1303415992
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -16662,7 +16662,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: c11772825ddf98249852b79f239f5d0b, type: 2}
+  - {fileID: 2100000, guid: 08773c71f7c042d4eb027c192265b17d, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -17067,21 +17067,24 @@ MonoBehaviour:
   m_OrbitsAmount: 64
   m_DensityWaveProperties:
     YSpread: 0.05
-    XZSpread: 0
-    DiskA: 5000
-    DiskB: 5000
+    XZSpread: 0.04
+    DiskAB: 30000
+    DiskEccentricity: 0.5
+    CoreProportion: 0.4
+    CoreEccentricity: 0.6
+    CenterAB: 10
+    CenterEccentricity: 0.5
     DiskSpeed: 1
-    DiskColor: {r: 0, g: 0.8386278, b: 1, a: 1}
+    CoreSpeed: 5
+    CenterSpeed: 10
+    DiskTiltX: 0
+    DiskTiltZ: 0
     CoreTiltX: 0
     CoreTiltZ: 0
-    CoreEccentricity: 0.6
-    CoreProportion: 0.4
-    CoreSpeed: 5
-    CoreColor: {r: 1, g: 0.6901961, b: 0, a: 1}
-    MinimumRadius: 10
     CenterTiltX: 0
     CenterTiltZ: 0
-    CenterSpeed: 10
+    DiskColor: {r: 0, g: 0.8386278, b: 1, a: 1}
+    CoreColor: {r: 1, g: 0.6901961, b: 0, a: 1}
     CenterColor: {r: 1, g: 1, b: 1, a: 1}
     Rotation: 360
     CenterPosition:

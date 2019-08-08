@@ -1,6 +1,5 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using Unity.Entities;
+﻿using Unity.Entities;
+using Unity.Mathematics;
 using Unity.Transforms;
 using UnityEngine;
 namespace Galaxy
@@ -20,14 +19,19 @@ namespace Galaxy
         private Quaternion m_PreviousRotation;
         private Vector3 m_TargetPosition;
         private Quaternion m_TargetRotation;
+        private EntityManager m_EntityManager;
+        private OrbitProperties m_CurrentPlanetOrbitProperties;
+        private PlanetProperties m_CurrentPlanetProperties;
         #endregion
 
         #region Public
+
         private Camera m_Camera;
         private float m_DefaultCameraLookSpeed;
         private float m_DefaultCameraMoveSpeed;
         private ViewType m_ViewType;
         private float m_CenterDistance;
+        private Entity m_PlanetEntity;
         public float DefaultCameraLookSpeed { get => m_DefaultCameraLookSpeed; set => m_DefaultCameraLookSpeed = value; }
         public float DefaultCameraMoveSpeed { get => m_DefaultCameraMoveSpeed; set => m_DefaultCameraMoveSpeed = value; }
         public Camera Camera { get => m_Camera; set => m_Camera = value; }
@@ -40,16 +44,28 @@ namespace Galaxy
             }
         }
         public float CenterDistance { get => m_CenterDistance; set => m_CenterDistance = value; }
+        public Entity PlanetEntity { get => m_PlanetEntity;
+            set
+            {
+                m_PlanetEntity = value;
+                if (m_PlanetEntity != Entity.Null)
+                {
+                    m_CurrentPlanetOrbitProperties = m_EntityManager.GetComponentData<OrbitProperties>(m_PlanetEntity);
+                    m_CurrentPlanetProperties = m_EntityManager.GetComponentData<PlanetProperties>(m_PlanetEntity);
+                }
+            }
+        }
         #endregion
 
         private void Start()
         {
             Camera = transform.GetChild(0).GetComponent<Camera>();
             m_DefaultCameraLookSpeed = 1;
-            m_DefaultCameraMoveSpeed = 0.5f;
+            m_DefaultCameraMoveSpeed = 5f;
             m_ViewType = ViewType.Galaxy;
             m_CenterDistance = 10;
             y = 36.87f;
+            m_EntityManager = World.Active.EntityManager;
         }
 
         static float ClampAngle(float angle, float min, float max)
@@ -78,7 +94,8 @@ namespace Galaxy
             {
                 m_TargetPosition = new Vector3(0, 0.15f, -0.2f);
                 m_CenterDistance = 0.25f;
-            }else
+            }
+            else
             {
                 m_TargetPosition = new Vector3(0, 3f, -4f);
                 m_CenterDistance = 5f;
@@ -93,6 +110,11 @@ namespace Galaxy
             Vector3 position = transform.position;
             if (!m_InTransition)
             {
+                if (PlanetEntity != Entity.Null)
+                {
+                    transform.position = (float3)m_CurrentPlanetOrbitProperties.GetPoint(PlanetTransformSimulationSystem.Time + m_CurrentPlanetProperties.StartTime);
+                }
+                else transform.position = Vector3.zero;
                 if (ViewType == ViewType.Galaxy)
                 {
                     m_CenterDistance -= Input.GetAxis("Mouse ScrollWheel") * 0.5f;
@@ -100,22 +122,21 @@ namespace Galaxy
                     m_CenterDistance = Mathf.Clamp(m_CenterDistance, 5f, 100f);
                     if (Input.GetKey(KeyCode.LeftControl))
                     {
-                        position.y -= Time.deltaTime * m_CenterDistance * 2;
+                        StarTransformSimulationSystem.FloatingOrigin.y -= Time.deltaTime * m_CenterDistance * 2 * m_CameraMoveSpeed;
                     }
                     else if (Input.GetKey(KeyCode.LeftShift))
                     {
-                        position.y += Time.deltaTime * m_CenterDistance * 2;
+                        StarTransformSimulationSystem.FloatingOrigin.y += Time.deltaTime * m_CenterDistance * 2 * m_CameraMoveSpeed;
                     }
                     m_CameraMoveSpeed = DefaultCameraMoveSpeed;
                     Vector3 vertical = m_Camera.transform.forward;
                     vertical.y = 0;
                     Vector3 horizonal = m_Camera.transform.right;
                     horizonal.y = 0;
-                    
-                    position += vertical.normalized * m_CameraMoveSpeed * Input.GetAxis("Vertical") * m_CenterDistance / 40;
-                    position += horizonal.normalized * m_CameraMoveSpeed * Input.GetAxis("Horizontal") * m_CenterDistance / 40;
-                    transform.position = position;
-                    
+
+                    StarTransformSimulationSystem.FloatingOrigin += (float3)vertical.normalized * m_CameraMoveSpeed * Input.GetAxis("Vertical") * m_CenterDistance / 40;
+                    StarTransformSimulationSystem.FloatingOrigin += (float3)horizonal.normalized * m_CameraMoveSpeed * Input.GetAxis("Horizontal") * m_CenterDistance / 40;
+
                     if (Input.GetMouseButton(1))
                     {
                         x += Input.GetAxis("Mouse X") * 0.5f;

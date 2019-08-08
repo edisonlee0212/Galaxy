@@ -8,9 +8,11 @@ namespace Galaxy
     [CreateAssetMenu]
     public class NebulasSystem : ScriptableObject
     {
+        
+
         [SerializeField]
         private GameObject m_MeshVertexParticleSystemPrefab;
-
+        
         private List<GameObject> m_MeshVertexParticleSystems;
         private GalaxyPattern m_DensityWave;
         public GalaxyPattern DensityWave { get => m_DensityWave; set => m_DensityWave = value; }

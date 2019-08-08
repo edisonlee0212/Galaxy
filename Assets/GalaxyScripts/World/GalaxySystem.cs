@@ -222,7 +222,7 @@ namespace Galaxy
         public void SetDensityWaveProperties(GalaxyPatternProperties densityWaveProperties)
         {
             DensityWaveProperties = densityWaveProperties;
-            SetCoreACoreB();
+            SetAB();
         }
 
         public void SetRotation(float rotation)
@@ -233,25 +233,25 @@ namespace Galaxy
         public void SetCoreProportion(float proportion)
         {
             properties.CoreProportion = proportion;
-            SetCoreACoreB();
+            SetAB();
         }
 
         public void SetCoreEccentricity(float eccentricity)
         {
             properties.CoreEccentricity = eccentricity;
-            SetCoreACoreB();
+            SetAB();
         }
 
         public void SetMaxA(float maxA)
         {
             properties.DiskA = maxA;
-            SetCoreACoreB();
+            SetAB();
         }
 
         public void SetMaxB(float maxB)
         {
             properties.DiskB = maxB;
-            SetCoreACoreB();
+            SetAB();
         }
 
         public void SetCoreSpeed(float speed)
@@ -271,8 +271,8 @@ namespace Galaxy
 
         public void SetMinRadius(float radius)
         {
-            properties.MinimumRadius = radius;
-            SetCoreACoreB();
+            properties.CenterAB = radius * 2;
+            SetAB();
         }
 
         public void SetCenterTiltX(float tiltX)
@@ -295,13 +295,17 @@ namespace Galaxy
             properties.CoreTiltZ = tiltZ;
         }
 
-        private void SetCoreACoreB()
+        private void SetAB()
         {
-            float ab = properties.MinimumRadius + properties.MinimumRadius +
-                ((properties.DiskA + properties.DiskB) - properties.MinimumRadius - properties.MinimumRadius)
+            properties.CoreAB = properties.CenterAB / 2 + properties.CenterAB / 2 +
+                ((properties.DiskA + properties.DiskB) - properties.CenterAB / 2 - properties.CenterAB / 2)
                 * properties.CoreProportion;
-            properties.CoreA = ab * properties.CoreEccentricity;
-            properties.CoreB = ab * (1 - properties.CoreEccentricity);
+            properties.CoreA = properties.CoreAB * properties.CoreEccentricity;
+            properties.CoreB = properties.CoreAB * (1 - properties.CoreEccentricity);
+            properties.DiskA = properties.DiskAB * properties.DiskEccentricity;
+            properties.DiskB = properties.DiskAB * (1 - properties.DiskEccentricity);
+            properties.CenterA = properties.CenterAB * properties.CenterEccentricity;
+            properties.CenterA = properties.CenterAB * (1 - properties.CenterEccentricity);
         }
         #endregion
 

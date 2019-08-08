@@ -39,17 +39,21 @@ namespace Galaxy
         private Camera m_MainCamera;
         private GalaxyPattern m_DensityWave;
         private bool m_CalculateOrbit;
-        private float m_SimulatedTime;
+        private static float m_SimulatedTime;
         private bool m_ContinuousSimulation;
         private float m_DiscreteSimulationTimeStep;
+        private static Entity m_FollowedStar;
         private StarPositionsJob calculateStarPositionsJob;
         private StarOrbitJob calculateStarOrbitJob;
         public GalaxyPattern DensityWave { get => m_DensityWave; set => m_DensityWave = value; }
         public bool CalculateOrbit { get => m_CalculateOrbit; set => m_CalculateOrbit = value; }
         public Camera MainCamera { get => m_MainCamera; set => m_MainCamera = value; }
-        public float SimulatedTime { get => m_SimulatedTime; set => m_SimulatedTime = value; }
+        public static float SimulatedTime { get => m_SimulatedTime; set => m_SimulatedTime = value; }
         public bool ContinuousSimulation { get => m_ContinuousSimulation; set => m_ContinuousSimulation = value; }
         public float DiscreteSimulationTimeStep { get => m_DiscreteSimulationTimeStep; set => m_DiscreteSimulationTimeStep = value; }
+        public static Entity FollowedStar { get => m_FollowedStar; set => m_FollowedStar = value; }
+
+        public static double3 FloatingOrigin;
         #endregion
 
         #region Managers
@@ -80,15 +84,20 @@ namespace Galaxy
 
         #region Jobs
         [BurstCompile]
-        struct StarPositionsJob : IJobForEach<StarProperties, Translation, OrbitProperties, Scale, CustomColor>
+        struct StarPositionsJob : IJobForEach<StarProperties, Translation, Position, OrbitProperties, Scale, CustomColor>
         {
             [ReadOnly] public float currentTime;
-            [ReadOnly] public Vector3 cameraPosition;
+            [ReadOnly] public double3 floatingOrigin;
             [ReadOnly] public GalaxyPatternProperties properties;
-            public void Execute([ReadOnly] ref StarProperties c0, [WriteOnly] ref Translation c1, [ReadOnly] ref OrbitProperties c3, [WriteOnly] ref Scale c4, [WriteOnly] ref CustomColor c5)
+            public void Execute([ReadOnly] ref StarProperties c0, [WriteOnly] ref Translation c1, [WriteOnly] ref Position c2, [ReadOnly] ref OrbitProperties c3, [WriteOnly] ref Scale c4, [WriteOnly] ref CustomColor c5)
             {
-                c1.Value = (float3)c3.GetPoint((c0.StartingTime + currentTime));
-                float distance = Vector3.Distance(cameraPosition, c1.Value);
+                c2.Value = c3.GetPoint((currentTime + c0.StartingTime));
+                c1.Value = (float3)(c2.Value - floatingOrigin);
+                if (c1.Value.x < 0.01 && c1.Value.x > -0.01 && c1.Value.y < 0.01 && c1.Value.y > -0.01 && c1.Value.z < 0.01 && c1.Value.z > -0.01)
+                {
+                    c1.Value = float3.zero;
+                }
+                float distance = Vector3.Distance(Vector3.zero, c1.Value);
                 Vector4 color = properties.GetColor((float)c0.Proportion);
                 color = color.normalized * 2;
                 if (distance < 40)
@@ -96,16 +105,16 @@ namespace Galaxy
                     distance = 40;
                     c5.Color = (c0.Color + (Vector4)Color.white).normalized * (2f + (40 - distance) / 20);
                 }
-                else if (distance > 2000)
+                else if (distance > 15000)
                 {
                     c5.Color = ((c0.Color * 40 + color * (distance - 40)) / distance).normalized * 1.5f;
-                    distance = 2000;
+                    distance = 15000;
                 }
                 else
                 {
                     c5.Color = ((c0.Color * 20 + (Vector4)Color.white * 20 + color * (distance - 40)) / distance).normalized * 1.8f;
                 }
-                c4.Value = (float)c0.Mass * distance / 40;
+                c4.Value = (float)c0.Mass * distance / 80;
             }
 
         }
@@ -127,7 +136,8 @@ namespace Galaxy
             {
                 m_DiscreteSimulationTimer = 0;
                 calculateStarPositionsJob.currentTime = SimulatedTime;
-                calculateStarPositionsJob.cameraPosition = m_MainCamera.transform.position;
+                if (m_FollowedStar != Entity.Null) FloatingOrigin = EntityManager.GetComponentData<OrbitProperties>(m_FollowedStar).GetPoint(SimulatedTime + EntityManager.GetComponentData<StarProperties>(m_FollowedStar).StartingTime);
+                calculateStarPositionsJob.floatingOrigin = FloatingOrigin;
                 calculateStarPositionsJob.properties = m_DensityWave.DensityWaveProperties;
                 if (m_CalculateOrbit)
                 {
@@ -148,17 +158,19 @@ namespace Galaxy
     {
         #region Attributes
         private Entity m_StarEntity;
-        private StarSystemProperties starSystemProperties;
+        private StarSystemProperties m_StarSystemProperties;
+
         #endregion
 
         #region Public
-        private float m_Time;
+        private static float m_Time;
         private GalaxyPattern m_DensityWave;
         private PlanetGenerator m_PlanetGenerator;
         private PlanetOrbits m_PlanetOrbits;
         public GalaxyPattern DensityWave { get => m_DensityWave; set => m_DensityWave = value; }
         public PlanetOrbits PlanetOrbits { get => m_PlanetOrbits; set => m_PlanetOrbits = value; }
         public PlanetGenerator PlanetGenerator { get => m_PlanetGenerator; set => m_PlanetGenerator = value; }
+        public static float Time { get => m_Time; set => m_Time = value; }
         #endregion
 
         #region Managers
@@ -178,10 +190,6 @@ namespace Galaxy
         #endregion
 
         #region Methods
-        public void SetTime(float Time)
-        {
-            m_Time = Time;
-        }
 
         public void ResetEntity(Entity e)
         {
@@ -190,38 +198,19 @@ namespace Galaxy
             if (e != Entity.Null)
             {
                 int index = 0;
-                starSystemProperties = EntityManager.GetComponentData<StarSystemProperties>(m_StarEntity);
-                FastRandom random = new FastRandom((int)starSystemProperties.Seed * 10000);
+                m_StarSystemProperties = EntityManager.GetComponentData<StarSystemProperties>(m_StarEntity);
+                FastRandom random = new FastRandom((int)m_StarSystemProperties.Seed * 10000);
                 var starProperties = EntityManager.GetComponentData<StarProperties>(m_StarEntity);
-                int planetAmount = starSystemProperties.PlanetAmount;
+                int planetAmount = m_StarSystemProperties.PlanetAmount;
                 for (int i = 0; i < planetAmount && i < planets.Length; i++)
                 {
-                    EntityManager.SetComponentData(planets[i], new Parent { Value = e });
-                    OrbitProperties orbitProperties = new OrbitProperties
-                    {
-                        tiltX = (float)random.NextDouble() * 10,
-                        tiltZ = (float)random.NextDouble() * 10,
-                        a = starProperties.Mass + 5 + index * 0.5f,
-                        b = starProperties.Mass + 5 + index * 0.5f,
-                        speedMultiplier = 5
-                    };
-                    EntityManager.SetComponentData(planets[i], orbitProperties);
-                    orbitProperties.a *= starProperties.Mass;
-                    orbitProperties.b *= starProperties.Mass;
-                    PlanetOrbits.Orbits[i].orbit = orbitProperties;
-                    PlanetOrbits.Orbits[i].gameObject.SetActive(true);
-                    PlanetOrbits.Orbits[i].CalculateEllipse(0.01f);
-                    var renderMesh = EntityManager.GetSharedComponentData<RenderMesh>(planets[i]);
-                    renderMesh.material = m_PlanetGenerator.GetPlanetMaterial(index, starSystemProperties.Seed);
-                    EntityManager.SetSharedComponentData(planets[i], renderMesh);
-
+                    PlanetResetHelper(i, index, planets[i], random, starProperties);
                     //Set up material for atmosphere.
                     /*Entity atmosphere = EntityManager.GetBuffer<Child>(planets[i])[0].Value;
                     renderMesh = EntityManager.GetSharedComponentData<RenderMesh>(atmosphere);
                     renderMesh.material = m_PlanetGenerator.GetAtmosphereMaterial(index, m_StarSystemProperties.Seed);
                     EntityManager.SetSharedComponentData(atmosphere, renderMesh);
                     */
-                    EntityManager.RemoveComponent<PreviousParent>(planets[i]);
                     index++;
                 }
                 for (int i = planetAmount; i < planets.Length; i++)
@@ -235,39 +224,22 @@ namespace Galaxy
                     for (int i = 0; i < planetAmount - planets.Length; i++)
                     {
                         EntityManager.SetEnabled(disabledPlanets[i], true);
-                        EntityManager.SetComponentData(disabledPlanets[i], new Parent { Value = e });
-                        OrbitProperties orbitProperties = new OrbitProperties
-                        {
-                            tiltX = (float)random.NextDouble() * 10,
-                            tiltZ = (float)random.NextDouble() * 10,
-                            a = starProperties.Mass + 5 + index * 0.5f,
-                            b = starProperties.Mass + 5 + index * 0.5f,
-                            speedMultiplier = 5
-                        };
-                        EntityManager.SetComponentData(disabledPlanets[i], orbitProperties);
-                        orbitProperties.a *= starProperties.Mass;
-                        orbitProperties.b *= starProperties.Mass;
-                        PlanetOrbits.Orbits[i].orbit = orbitProperties;
-                        PlanetOrbits.Orbits[i].gameObject.SetActive(true);
-                        PlanetOrbits.Orbits[i].CalculateEllipse(0.01f);
-                        var renderMesh = EntityManager.GetSharedComponentData<RenderMesh>(disabledPlanets[i]);
-                        renderMesh.material = m_PlanetGenerator.GetPlanetMaterial(index, starSystemProperties.Seed);
-                        EntityManager.SetSharedComponentData(disabledPlanets[i], renderMesh);
-
+                        PlanetResetHelper(i, index, disabledPlanets[i], random, starProperties);
                         //Set up material for atmosphere.
                         /*Entity atmosphere = EntityManager.GetBuffer<Child>(disabledPlanets[i])[0].Value;
                         renderMesh = EntityManager.GetSharedComponentData<RenderMesh>(atmosphere);
                         renderMesh.material = m_PlanetGenerator.GetAtmosphereMaterial(index, m_StarSystemProperties.Seed);
                         EntityManager.SetSharedComponentData(atmosphere, renderMesh);
                         */
-                        EntityManager.RemoveComponent<PreviousParent>(disabledPlanets[i]);
                         index++;
                     }
                     disabledPlanets.Dispose();
                 }
+                Enabled = true;
             }
             else
             {
+                Enabled = false;
                 for (int i = 0; i < planets.Length; i++)
                 {
                     EntityManager.SetEnabled(planets[i], false);
@@ -276,6 +248,27 @@ namespace Galaxy
             }
             planets.Dispose();
         }
+
+        private void PlanetResetHelper(int i, int index, Entity planet, FastRandom random, StarProperties starProperties)
+        {
+
+            OrbitProperties orbitProperties = new OrbitProperties
+            {
+                tiltX = (float)random.NextDouble() * 10,
+                tiltZ = (float)random.NextDouble() * 10,
+                a = starProperties.Mass * (5 + index * 0.5f),
+                b = starProperties.Mass * (5 + index * 0.5f),
+                speedMultiplier = 5
+            };
+            EntityManager.SetComponentData(planet, orbitProperties);
+            PlanetOrbits.Orbits[i].orbit = orbitProperties;
+            PlanetOrbits.Orbits[i].gameObject.SetActive(true);
+            PlanetOrbits.Orbits[i].CalculateEllipse(0.01f);
+            var renderMesh = EntityManager.GetSharedComponentData<RenderMesh>(planet);
+            renderMesh.material = m_PlanetGenerator.GetPlanetMaterial(index, m_StarSystemProperties.Seed);
+            EntityManager.SetSharedComponentData(planet, renderMesh);
+        }
+
         #endregion
 
         #region Jobs
@@ -289,6 +282,7 @@ namespace Galaxy
                 if (index < planetAmount)
                 {
                     c1.Value = (float3)c4.GetPoint(time + c0.StartTime);
+                    c3.Value = c0.Mass;
                     c2.Value = Quaternion.AngleAxis(time * 10000, Quaternion.AngleAxis((float)c4.tiltZ, Vector3.forward) * Quaternion.AngleAxis((float)c4.tiltX, Vector3.right) * Vector3.up);
                 }
             }
@@ -297,12 +291,13 @@ namespace Galaxy
 
         protected override JobHandle OnUpdate(JobHandle inputDeps)
         {
-            m_Time += Time.deltaTime / 100;
+            Time += UnityEngine.Time.deltaTime / 100;
             inputDeps = new PlanetPositionsJob
             {
-                planetAmount = starSystemProperties.PlanetAmount,
-                time = m_Time
+                planetAmount = m_StarSystemProperties.PlanetAmount,
+                time = Time
             }.Schedule(this, inputDeps);
+            inputDeps.Complete();
             return inputDeps;
         }
     }
@@ -310,8 +305,8 @@ namespace Galaxy
 
     #region Presentation Systems
 
-    [UpdateInGroup(typeof(PresentationSystemGroup))]
-    [UpdateBefore(typeof(StarRenderSystem))]
+    [UpdateInGroup(typeof(SimulationSystemGroup))]
+    [UpdateBefore(typeof(StarTransformSimulationSystem))]
     public class SelectionSystem : JobComponentSystem
     {
         #region Attributes
@@ -323,7 +318,7 @@ namespace Galaxy
         private NativeQueue<Matrix4x4> m_CircledResultMatrices;
         private NativeQueue<Color> m_CircledColors;
         private float m_Timer;
-        private Vector3 m_PreviousPosition;
+        private double3 m_PreviousPosition;
         private Quaternion m_PreviousRotation;
         private PlanetTransformSimulationSystem m_PlanetPositionSimulationSystem;
         private StarRenderSystem m_StarRenderSystem;
@@ -335,7 +330,6 @@ namespace Galaxy
         private StarMarker m_StarMarker;
         private static ViewType m_ViewType;
         private Entity m_SelectedEntity;
-        private Entity m_LockedStarEntity;
         private Entity m_MouseSelectionResultEntity;
         private Entity m_LastMouseSelectedEntity;
         private float m_MaxRayCastDistance;
@@ -364,7 +358,6 @@ namespace Galaxy
         public PlanetOrbits PlanetOrbits { get => m_PlanetOrbits; set => m_PlanetOrbits = value; }
         public float TransitionTime { get => m_TransitionTime; set => m_TransitionTime = value; }
         public Entity SelectedEntity { get => m_SelectedEntity; set => m_SelectedEntity = value; }
-        public Entity LockedStarEntity { get => m_LockedStarEntity; set => m_LockedStarEntity = value; }
         public bool InTransition { get => m_InTransition; set => m_InTransition = value; }
         public Entity CircleSelectionResultEntity { get => m_CircleSelectionResultEntity; set => m_CircleSelectionResultEntity = value; }
         public StarMarker StarMarker { get => m_StarMarker; set => m_StarMarker = value; }
@@ -392,7 +385,7 @@ namespace Galaxy
         public void Init()
         {
             m_MainCamera = Camera.main;
-            m_MaxRayCastDistance = 1000;
+            m_MaxRayCastDistance = 5000;
             Enabled = true;
         }
 
@@ -416,7 +409,6 @@ namespace Galaxy
         {
             [ReadOnly] public Vector3 Start;
             [ReadOnly] public Vector3 End;
-            [ReadOnly] public Vector3 CameraControlPosition;
             [ReadOnly] public float RayCastDistance;
             [WriteOnly] public NativeQueue<Entity>.Concurrent RayCastResultEntities;
             [WriteOnly] public NativeQueue<float>.Concurrent RayCastDistances;
@@ -438,16 +430,17 @@ namespace Galaxy
                         RayCastDistances.Enqueue(ap);
                     }
                 }
-                d = Vector3.Distance(CameraControlPosition, c0.Value);
+                d = Vector3.Distance(Vector3.zero, c0.Value);
                 //Collect information for beacon.
-                if (d < 60 && Mathf.Abs(c0.Value.y - CameraControlPosition.y) < 20)
+                if (d < 60 && Mathf.Abs(c0.Value.y) < 20)
                 {
-                    Vector2 a = new Vector2(CameraControlPosition.x, CameraControlPosition.z);
                     Vector2 b = new Vector2(c0.Value.x, c0.Value.z);
                     //Here we try to calculate the LocalToWorld for the beacons.
                     float3 position = c0.Value;
-                    position.y = (position.y + CameraControlPosition.y) / 2;
-                    float length = Mathf.Abs(position.y - CameraControlPosition.y);
+                    position.y = position.y / 2;
+                    float length = Mathf.Abs(position.y);
+                    //If beacon is too short to display we return. 
+                    if (length < c1.Value) return;
                     float4x4 matrix = new float4x4();
                     matrix.c0.x = 0.05f;
                     matrix.c1.y = length;
@@ -458,11 +451,11 @@ namespace Galaxy
                     matrix.c3.w = 1;
                     CircledResultMatrices.Enqueue(matrix);
                     Color color;
-                    if (Vector2.Distance(a, b) < 1)
+                    if (Vector2.Distance(Vector2.zero, b) < 1)
                     {
                         color = Color.white;
                         CircleResultEntities.Enqueue(entity);
-                        CircleDistances.Enqueue(Vector2.Distance(a, b));
+                        CircleDistances.Enqueue(Vector2.Distance(Vector2.zero, b));
                     }
                     else color = ((Vector4)Color.white + c2.Color).normalized * 1f;
                     CircledResultColors.Enqueue(color);
@@ -509,7 +502,6 @@ namespace Galaxy
                     {
                         Start = ray.origin,
                         End = ray.origin + ray.direction * m_MaxRayCastDistance,
-                        CameraControlPosition = m_CameraControl.transform.position,
                         CircledResultColors = m_CircledColors.ToConcurrent(),
                         CircledResultMatrices = m_CircledResultMatrices.ToConcurrent(),
                         RayCastDistance = m_MaxRayCastDistance,
@@ -544,7 +536,7 @@ namespace Galaxy
                 }
                 else if (ViewType == ViewType.StarSystem || ViewType == ViewType.Planet)
                 {
-                    
+
                     inputDeps = new PlanetSelectionJob
                     {
                         Start = ray.origin,
@@ -579,20 +571,10 @@ namespace Galaxy
 
                 if (ViewType == ViewType.Galaxy && m_CircleSelectionResultEntity != Entity.Null && Input.GetKeyDown(KeyCode.Space))
                 {
-
                     m_SelectedEntity = m_CircleSelectionResultEntity;
                     ViewType = ViewType.StarSystem;
-                    m_LockedStarEntity = m_SelectedEntity;
-                    m_StarRenderSystem.SelectedStarEntity = m_SelectedEntity;
-                    m_PlanetPositionSimulationSystem.ResetEntity(m_LockedStarEntity);
-                    m_Light.enabled = true;
-                    m_BeaconRenderSystem.BeaconAmount = 0;
-                    m_InTransition = true;
-                    m_TransitionTime = Mathf.Pow(Vector3.Distance(m_MainCamera.transform.position, EntityManager.GetComponentData<LocalToWorld>(m_SelectedEntity).Position), 0.25f) / 2;
-                    m_Timer = m_TransitionTime;
-                    m_PreviousPosition = m_CameraControl.transform.position;
-                    m_CameraControl.StartTransition(m_TransitionTime, ViewType);
 
+                    TransitionSetter();
                 }
                 else if (Input.GetKeyDown(KeyCode.F))
                 {
@@ -603,25 +585,16 @@ namespace Galaxy
                         if (ViewType == ViewType.Galaxy)
                         {
                             ViewType = ViewType.StarSystem;
-                            m_LockedStarEntity = m_SelectedEntity;
-                            m_StarRenderSystem.SelectedStarEntity = m_SelectedEntity;
-                            m_PlanetPositionSimulationSystem.ResetEntity(m_LockedStarEntity);
-                            m_Light.enabled = true;
+                            Debug.Log(m_SelectedEntity);
+                            TransitionSetter();
                         }
                         else if (ViewType == ViewType.StarSystem)
                         {
                             ViewType = ViewType.Planet;
+                            m_CameraControl.PlanetEntity = m_SelectedEntity;
+                            m_CameraControl.StartTransition(0.1f, ViewType);
                         }
-                    }
-                    if (m_SelectedEntity != Entity.Null)
-                    {
-                        m_InTransition = true;
-                        m_BeaconRenderSystem.BeaconAmount = 0;
-                        
-                        m_TransitionTime = Mathf.Pow(Vector3.Distance(m_MainCamera.transform.position, EntityManager.GetComponentData<LocalToWorld>(m_SelectedEntity).Position), 0.25f) / 2;
-                        m_Timer = m_TransitionTime;
-                        m_PreviousPosition = m_CameraControl.transform.position;
-                        m_CameraControl.StartTransition(m_TransitionTime, ViewType);
+
                     }
                 }
                 else if (Input.GetKeyDown(KeyCode.Escape))
@@ -633,31 +606,19 @@ namespace Galaxy
                         {
                             ViewType = ViewType.Galaxy;
                             m_SelectedEntity = Entity.Null;
-                            m_StarRenderSystem.SelectedStarEntity = m_SelectedEntity;
                             m_PlanetPositionSimulationSystem.ResetEntity(Entity.Null);
+                            StarTransformSimulationSystem.FollowedStar = Entity.Null;
                             m_Light.enabled = false;
                             m_CameraControl.StartTransition(0.5f, ViewType);
                         }
                         else if (ViewType == ViewType.Planet)
                         {
                             ViewType = ViewType.StarSystem;
-                            m_SelectedEntity = LockedStarEntity;
-                            m_PreviousPosition = m_CameraControl.transform.position;
-                        }
-                        if (m_SelectedEntity != Entity.Null)
-                        {
-                            m_InTransition = true;
-                            m_TransitionTime = Mathf.Pow(Vector3.Distance(m_MainCamera.transform.position, EntityManager.GetComponentData<LocalToWorld>(m_SelectedEntity).Position), 0.25f) / 2;
-                            m_Timer = m_TransitionTime;
-                            m_PreviousPosition = m_CameraControl.transform.position;
-                            m_CameraControl.StartTransition(m_TransitionTime, ViewType);
+                            m_SelectedEntity = StarTransformSimulationSystem.FollowedStar;
+                            m_CameraControl.PlanetEntity = Entity.Null;
+                            m_CameraControl.StartTransition(0.1f, ViewType);
                         }
                     }
-                }
-                else if (m_SelectedEntity != Entity.Null)
-                {
-                    m_CameraControl.transform.position = EntityManager.GetComponentData<LocalToWorld>(SelectedEntity).Position;
-
                 }
                 #endregion
             }
@@ -668,13 +629,26 @@ namespace Galaxy
                 {
                     m_Timer = 0;
                     m_InTransition = false;
+                    m_Light.enabled = true;
                     LastMouseSelectedEntity = Entity.Null;
+                    m_PlanetPositionSimulationSystem.ResetEntity(m_SelectedEntity);
+                    StarTransformSimulationSystem.FollowedStar = m_SelectedEntity;
                 }
                 float t = Mathf.Pow((m_TransitionTime - m_Timer) / m_TransitionTime, 0.25f);
-                m_CameraControl.transform.position = Vector3.Lerp(m_PreviousPosition, EntityManager.GetComponentData<LocalToWorld>(SelectedEntity).Position, t);
+                var tmp = Vector3.Lerp((float3)m_PreviousPosition, (float3)EntityManager.GetComponentData<Position>(SelectedEntity).Value, t);
+                StarTransformSimulationSystem.FloatingOrigin = new double3(tmp);
             }
-            
+
             return inputDeps;
+        }
+        private void TransitionSetter()
+        {
+            m_BeaconRenderSystem.BeaconAmount = 0;
+            m_InTransition = true;
+            m_TransitionTime = Mathf.Pow(Vector3.Distance(Vector3.zero, EntityManager.GetComponentData<LocalToWorld>(m_SelectedEntity).Position), 0.25f) / 2;
+            m_Timer = m_TransitionTime;
+            m_PreviousPosition = StarTransformSimulationSystem.FloatingOrigin;
+            m_CameraControl.StartTransition(m_TransitionTime, ViewType);
         }
     }
 
@@ -761,14 +735,12 @@ namespace Galaxy
         private UnityEngine.Material m_StarMaterial;
         private UnityEngine.Material m_StarIndirectMaterial;
         private Light m_Light;
-        private Entity m_SelectedStarEntity;
         private PlanetOrbits m_PlanetOrbits;
         public UnityEngine.Mesh StarMesh { get => m_StarMesh; set => m_StarMesh = value; }
         public UnityEngine.Material StarMaterial { get => m_StarMaterial; set => m_StarMaterial = value; }
         public bool EnableCulling { get => m_EnableCulling; set => m_EnableCulling = value; }
         public bool InstancedIndirect { get => m_InstancedIndirect; set => m_InstancedIndirect = value; }
         public Light Light { get => m_Light; set => m_Light = value; }
-        public Entity SelectedStarEntity { get => m_SelectedStarEntity; set => m_SelectedStarEntity = value; }
         public PlanetOrbits PlanetOrbits { get => m_PlanetOrbits; set => m_PlanetOrbits = value; }
         public int StarAmount { get => m_StarAmount; set => m_StarAmount = value; }
         public UnityEngine.Material StarIndirectMaterial { get => m_StarIndirectMaterial; set => m_StarIndirectMaterial = value; }
@@ -937,12 +909,6 @@ namespace Galaxy
             m_LocalToWorlds.Dispose();
             m_CustomColors.Dispose();
 
-            if (m_SelectedStarEntity != Entity.Null)
-            {
-                Vector3 position = EntityManager.GetComponentData<LocalToWorld>(m_SelectedStarEntity).Position;
-                Light.transform.position = position;
-                m_PlanetOrbits.transform.position = position;
-            }
             return inputDeps;
         }
     }
@@ -984,6 +950,7 @@ namespace Galaxy
             EntityArchetype starEntityArchetype = EntityManager.CreateArchetype(
                 typeof(CustomCullingStat),
                 typeof(Translation),
+                typeof(Position),
                 typeof(Rotation),
                 typeof(StarProperties),
                 typeof(CustomColor),
@@ -998,11 +965,9 @@ namespace Galaxy
                 typeof(Rotation),
                 typeof(Scale),
                 typeof(LocalToWorld),
-                typeof(LocalToParent),
                 typeof(RenderMesh),
                 typeof(OrbitProperties),
-                typeof(PlanetProperties),
-                typeof(Parent)
+                typeof(PlanetProperties)
                 );
             EntityArchetype planetAtmosphereArchetype = EntityManager.CreateArchetype(
                 typeof(Translation),
@@ -1025,10 +990,13 @@ namespace Galaxy
                         Entity planet = EntityManager.CreateEntity(planetEntityArchetype);
                         //entityManager.SetName(planet, "Planet");
                         EntityManager.SetEnabled(planet, false);
-                        EntityManager.SetComponentData(planet, new Parent { Value = instance });
-                        EntityManager.SetComponentData(planet, new Scale { Value = 0.1f });
-                        EntityManager.SetComponentData(planet, new PlanetProperties { StartTime = Random.Next() * 360 });
-                        RenderMesh renderMesh = new RenderMesh {
+                        EntityManager.SetComponentData(planet, new PlanetProperties
+                        {
+                            StartTime = Random.Next() * 360,
+                            Mass = 0.01f
+                        });
+                        RenderMesh renderMesh = new RenderMesh
+                        {
                             mesh = m_PlanetMesh,
                             layer = 9,
                             castShadows = UnityEngine.Rendering.ShadowCastingMode.Off,

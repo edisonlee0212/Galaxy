@@ -21,7 +21,7 @@ namespace Galaxy {
             m_List.transform.GetChild(5).GetComponentInChildren<Slider>().value = densityWaveProperties.CoreTiltZ;
             m_List.transform.GetChild(6).GetComponentInChildren<Slider>().value = densityWaveProperties.CenterTiltX;
             m_List.transform.GetChild(7).GetComponentInChildren<Slider>().value = densityWaveProperties.CenterTiltZ;
-            m_List.transform.GetChild(8).GetComponentInChildren<Slider>().value = densityWaveProperties.MinimumRadius;
+            m_List.transform.GetChild(8).GetComponentInChildren<Slider>().value = densityWaveProperties.CenterAB;
             m_List.transform.GetChild(9).GetComponentInChildren<Slider>().value = densityWaveProperties.DiskA;
             m_List.transform.GetChild(10).GetComponentInChildren<Slider>().value = densityWaveProperties.DiskB;
             m_List.transform.GetChild(11).GetComponentInChildren<Slider>().value = densityWaveProperties.Rotation;

@@ -95,6 +95,11 @@ namespace Galaxy
     }
 
     [Serializable]
+    public struct Position : IComponentData {
+        public double3 Value;
+    }
+
+    [Serializable]
     public struct OrbitProperties : IComponentData
     {
         #region Public
@@ -163,6 +168,7 @@ namespace Galaxy
     public struct PlanetProperties : IComponentData
     {
         public float StartTime;
+        public float Mass;
     }
 
     [Serializable]
@@ -171,32 +177,52 @@ namespace Galaxy
         #region public
         public float YSpread;
         public float XZSpread;
-        public float DiskA;
-        public float DiskB;
-        public float DiskSpeed;
-        public Color DiskColor;
 
+        public float DiskAB;
+        public float DiskEccentricity;
+        [NonSerialized]
+        public float DiskA;
+        [NonSerialized]
+        public float DiskB;
+
+        public float CoreProportion;
+        [NonSerialized]
+        public float CoreAB;
+        public float CoreEccentricity;
+        [NonSerialized]
+        public float CoreA;
+        [NonSerialized]
+        public float CoreB;
+
+        public float CenterAB;
+        public float CenterEccentricity;
+        [NonSerialized]
+        public float CenterA;
+        [NonSerialized]
+        public float CenterB;
+        
+
+        public float DiskSpeed;
+        public float CoreSpeed;
+        public float CenterSpeed;
+
+        public float DiskTiltX;
+        public float DiskTiltZ;
         public float CoreTiltX;
         public float CoreTiltZ;
-        public float CoreEccentricity;
-        public float CoreProportion;
-        public float CoreSpeed;
-        public Color CoreColor;
-
-        public float MinimumRadius;
         public float CenterTiltX;
         public float CenterTiltZ;
-        public float CenterSpeed;
+
+        public Color DiskColor;
+        public Color CoreColor;
         public Color CenterColor;
 
         public float Rotation;
         public float3 CenterPosition;
-        public float CoreA { get => coreA; set => coreA = value; }
-        public float CoreB { get => coreB; set => coreB = value; }
+        
         #endregion
         #region Private
-        private float coreA;
-        private float coreB;
+
         #endregion
         /// <summary>
         /// Set the ellipse by the proportion.
@@ -216,18 +242,18 @@ namespace Galaxy
                 float actualProportion = (proportion - CoreProportion) / (1 - CoreProportion);
                 orbit.a = CoreA + (DiskA - CoreA) * actualProportion;
                 orbit.b = CoreB + (DiskB - CoreB) * actualProportion;
-                orbit.tiltX = CoreTiltX * (1 - actualProportion);
-                orbit.tiltZ = CoreTiltZ * (1 - actualProportion);
+                orbit.tiltX = CoreTiltX - (CoreTiltX - DiskTiltX) * actualProportion;
+                orbit.tiltZ = CoreTiltZ - (CoreTiltZ - DiskTiltZ) * actualProportion;
                 orbit.speedMultiplier = CoreSpeed + (DiskSpeed - CoreSpeed) * actualProportion;
             }
             else
             {
                 float actualProportion = proportion / CoreProportion;
-                orbit.a = (CoreA - MinimumRadius) * actualProportion + MinimumRadius;
-                orbit.b = (CoreB - MinimumRadius) * actualProportion + MinimumRadius;
+                orbit.a = CenterA + (CoreA - CenterA / 2) * actualProportion;
+                orbit.b = CenterB + (CoreB - CenterB / 2) * actualProportion;
                 orbit.tiltX = CenterTiltX - (CenterTiltX - CoreTiltX) * actualProportion;
                 orbit.tiltZ = CenterTiltZ - (CenterTiltZ - CoreTiltZ) * actualProportion;
-                orbit.speedMultiplier = (CoreSpeed - CenterSpeed) * actualProportion + CenterSpeed;
+                orbit.speedMultiplier = CenterSpeed + (CoreSpeed - CenterSpeed) * actualProportion;
             }
             orbit.tiltY = -Rotation * proportion;
             orbit.centerPosition = CenterPosition * (1 - proportion);
