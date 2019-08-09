@@ -176,7 +176,7 @@ Material:
     - _Shininess: 0.078125
     - _ShoresContrast: 0.418
     - _SimpleGradientColor: 0
-    - _Size: 0.184
+    - _Size: 1
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
     - _Specularity: 0.303

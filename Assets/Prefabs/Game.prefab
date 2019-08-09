@@ -1,0 +1,86 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &8966687275366530241
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8966687275366530240}
+  - component: {fileID: 8966687275366530255}
+  m_Layer: 0
+  m_Name: Game
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8966687275366530240
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8966687275366530241}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.5730057, y: -9.1949005, z: 7.850706}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 0
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &8966687275366530255
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8966687275366530241}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7a786f28a29676d47b5115a81c4fa37f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_InputText: {fileID: 0}
+  m_CameraControl: {fileID: 8208847147841364249, guid: f3749c8db9a87a14bb0f223150618810,
+    type: 3}
+  m_GalaxySystem: {fileID: 11400000, guid: 55d7a960abfcc514a9e87d7ffaa91053, type: 2}
+  m_OrbitPrefab: {fileID: 2516425463289216105, guid: effe3f60203307745a47703076d2180e,
+    type: 3}
+  m_OrbitsAmount: 64
+  m_DensityWaveProperties:
+    YSpread: 0.05
+    XZSpread: 0.04
+    DiskAB: 2000
+    DiskEccentricity: 0.5
+    CoreProportion: 0.4
+    CoreEccentricity: 0.6
+    CenterAB: 10
+    CenterEccentricity: 0.5
+    DiskSpeed: 1
+    CoreSpeed: 5
+    CenterSpeed: 10
+    DiskTiltX: 0
+    DiskTiltZ: 0
+    CoreTiltX: 0
+    CoreTiltZ: 0
+    CenterTiltX: 0
+    CenterTiltZ: 0
+    DiskColor: {r: 0.7358491, g: 0.9811321, b: 0.95669466, a: 1}
+    CoreColor: {r: 1, g: 0.8443396, b: 0.89421475, a: 1}
+    CenterColor: {r: 1, g: 0.92398477, b: 0.8254717, a: 1}
+    Rotation: 360
+    CenterPosition:
+      x: 0
+      y: 0
+      z: 0
+  m_Settings: {fileID: 396200794359256090, guid: 7219a87c9e543164cbf61b2bcded2515,
+    type: 3}
+  m_StarMarker: {fileID: 4273425365618070392, guid: 534253ab524b14349891ae2ab1d7e937,
+    type: 3}
+  m_PlanetarySystemPrefab: {fileID: 8947004173018962886, guid: f59124c44dd17404ab18514aac07f269,
+    type: 3}
+  m_LoadingScreen: {fileID: 3015562881382881596, guid: 2accf1879b419044cbb286bab9008651,
+    type: 3}

@@ -5,11 +5,15 @@ using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
 using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
+
 namespace Galaxy
 {
     public class Game : MonoBehaviour
     {
         #region Attributes
+
         [SerializeField]
         private CameraControl m_CameraControl;
         [SerializeField]
@@ -26,6 +30,10 @@ namespace Galaxy
         private StarMarker m_StarMarker;
         [SerializeField]
         private PlanetarySystem m_PlanetarySystemPrefab;
+
+        [SerializeField]
+        private GameObject m_LoadingScreen;
+
         #endregion
 
         private PlanetarySystem m_PlanetarySystem;
@@ -34,16 +42,39 @@ namespace Galaxy
         private GalaxyPattern m_DensityWave;
         private float m_TimeSpeed;
         private bool m_Running = true;
-        
+        private int m_StarAmount;
         // Start is called before the first frame update
         void Start()
         {
+            var go = GameObject.Find("SceneMsg");
+            if (go != null)
+            {
+                SceneMsg msg = go.GetComponent<SceneMsg>();
+                m_StarAmount = msg.StartAmount;
+                Destroy(go);
+            }
+            else m_StarAmount = 6000;
+            m_DensityWaveProperties.DiskAB = Mathf.Pow(m_StarAmount, 0.3333333f) * 400;
+            m_LoadingScreen = Instantiate(m_LoadingScreen, FindObjectOfType<Canvas>().transform);
+            Debug.Log("Start Loading...");
+            Init();
+            Destroy(m_LoadingScreen);
+            Debug.Log("Loading finished...");
+        }
+
+        private void Init()
+        {
+            Canvas m_Canvas = FindObjectOfType<Canvas>();
+
+            m_CameraControl = Instantiate(m_CameraControl);
+            m_StarMarker = Instantiate(m_StarMarker, m_Canvas.transform);
+
             m_PlanetarySystem = Instantiate(m_PlanetarySystemPrefab, Vector3.zero, Quaternion.identity);
             m_CameraControl.PlanetarySystem = m_PlanetarySystem;
             m_GalaxySystem.CameraControl = m_CameraControl;
             m_GalaxySystem.StarMarker = m_StarMarker;
             m_GalaxySystem.PlanetarySystem = m_PlanetarySystem;
-            m_GalaxySystem.Init(m_DensityWaveProperties);
+            m_GalaxySystem.Init(m_DensityWaveProperties, m_StarAmount, 20);
             m_TimeSpeed = 0.001f;
             Debug.Assert(m_OrbitsAmount <= 100 && m_OrbitsAmount >= 10);
             m_OrbitObjects = new List<Orbit>();
@@ -53,9 +84,15 @@ namespace Galaxy
                 instance.gameObject.SetActive(false);
                 m_OrbitObjects.Add(instance);
             }
-            m_DensityWave = m_GalaxySystem.DensityWave;
-            m_Settings.Init(m_GalaxySystem.DensityWave.DensityWaveProperties, m_TimeSpeed, m_DisplayOrbits);
+            m_DensityWave = m_GalaxySystem.GalaxyPattern;
+            m_Settings.Init(m_GalaxySystem.GalaxyPattern.DensityWaveProperties, m_TimeSpeed, m_DisplayOrbits);
             Recalculate();
+        }
+
+        public void OnBackToMainMenu()
+        {
+            m_GalaxySystem.ShutDown();
+            SceneManager.LoadScene("Start");
         }
 
         public void Update()
@@ -69,7 +106,7 @@ namespace Galaxy
         /// </summary>
         public void Recalculate()
         {
-            m_GalaxySystem.Galaxy.StarPositionSimulationSystem.CalculateOrbit = true;
+            m_GalaxySystem.Galaxy.StarTransformSimulationSystem.CalculateOrbit = true;
             for (int i = 0; i < m_OrbitsAmount; i++)
             {
                 m_OrbitObjects[i].orbit = m_DensityWave.GetOrbit((float)i / (m_OrbitsAmount - 1), float3.zero);
@@ -127,21 +164,27 @@ namespace Galaxy
             Recalculate();
         }
 
-        public void SetMaxA(float maxA)
+        public void SetDiskAB(float ab)
         {
-            m_DensityWave.SetMaxA(maxA);
+            m_DensityWave.SetDiskAB(ab);
             Recalculate();
         }
 
-        public void SetMaxB(float maxB)
+        public void SetDiskEccentricity(float ecc)
         {
-            m_DensityWave.SetMaxB(maxB);
+            m_DensityWave.SetDiskEccentricity(ecc);
             Recalculate();
         }
 
-        public void SetMinRadius(float radius)
+        public void SetCenterEccentricity(float ecc)
         {
-            m_DensityWave.SetMinRadius(radius);
+            m_DensityWave.SetCenterEccentricity(ecc);
+            Recalculate();
+        }
+
+        public void SetCenterAB(float radius)
+        {
+            m_DensityWave.SetCenterAB(radius);
             Recalculate();
         }
 
@@ -166,6 +209,18 @@ namespace Galaxy
         public void SetCoreTiltY(float tiltY)
         {
             m_DensityWave.SetCoreTiltZ(tiltY);
+            Recalculate();
+        }
+
+        public void SetDiskTiltX(float tiltX)
+        {
+            m_DensityWave.SetDiskTiltX(tiltX);
+            Recalculate();
+        }
+
+        public void SetDiskTiltY(float tiltY)
+        {
+            m_DensityWave.SetDiskTiltZ(tiltY);
             Recalculate();
         }
 

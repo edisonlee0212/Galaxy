@@ -17,17 +17,21 @@ namespace Galaxy {
             m_List.transform.GetChild(1).GetComponentInChildren<Slider>().value = densityWaveProperties.DiskSpeed;
             m_List.transform.GetChild(2).GetComponentInChildren<Slider>().value = densityWaveProperties.CoreSpeed;
             m_List.transform.GetChild(3).GetComponentInChildren<Slider>().value = densityWaveProperties.CenterSpeed;
-            m_List.transform.GetChild(4).GetComponentInChildren<Slider>().value = densityWaveProperties.CoreTiltX;
-            m_List.transform.GetChild(5).GetComponentInChildren<Slider>().value = densityWaveProperties.CoreTiltZ;
-            m_List.transform.GetChild(6).GetComponentInChildren<Slider>().value = densityWaveProperties.CenterTiltX;
-            m_List.transform.GetChild(7).GetComponentInChildren<Slider>().value = densityWaveProperties.CenterTiltZ;
-            m_List.transform.GetChild(8).GetComponentInChildren<Slider>().value = densityWaveProperties.CenterAB;
-            m_List.transform.GetChild(9).GetComponentInChildren<Slider>().value = densityWaveProperties.DiskA;
-            m_List.transform.GetChild(10).GetComponentInChildren<Slider>().value = densityWaveProperties.DiskB;
-            m_List.transform.GetChild(11).GetComponentInChildren<Slider>().value = densityWaveProperties.Rotation;
-            m_List.transform.GetChild(12).GetComponentInChildren<Slider>().value = densityWaveProperties.CoreProportion;
-            m_List.transform.GetChild(13).GetComponentInChildren<Slider>().value = timeSpeed;
+            m_List.transform.GetChild(4).GetComponentInChildren<Slider>().value = densityWaveProperties.DiskTiltX;
+            m_List.transform.GetChild(5).GetComponentInChildren<Slider>().value = densityWaveProperties.DiskTiltZ;
+            m_List.transform.GetChild(6).GetComponentInChildren<Slider>().value = densityWaveProperties.CoreTiltX;
+            m_List.transform.GetChild(7).GetComponentInChildren<Slider>().value = densityWaveProperties.CoreTiltZ;
+            m_List.transform.GetChild(8).GetComponentInChildren<Slider>().value = densityWaveProperties.CenterTiltX;
+            m_List.transform.GetChild(9).GetComponentInChildren<Slider>().value = densityWaveProperties.CenterTiltZ;
+            m_List.transform.GetChild(10).GetComponentInChildren<Slider>().value = densityWaveProperties.DiskAB;
+            m_List.transform.GetChild(11).GetComponentInChildren<Slider>().value = densityWaveProperties.CoreProportion;
+            m_List.transform.GetChild(12).GetComponentInChildren<Slider>().value = densityWaveProperties.CenterAB;
+            m_List.transform.GetChild(13).GetComponentInChildren<Slider>().value = densityWaveProperties.DiskEccentricity;
             m_List.transform.GetChild(14).GetComponentInChildren<Slider>().value = densityWaveProperties.CoreEccentricity;
+            m_List.transform.GetChild(15).GetComponentInChildren<Slider>().value = densityWaveProperties.CenterEccentricity;
+            m_List.transform.GetChild(16).GetComponentInChildren<Slider>().value = densityWaveProperties.Rotation;
+            m_List.transform.GetChild(17).GetComponentInChildren<Slider>().value = timeSpeed;
+            
             transform.GetChild(1).gameObject.SetActive(m_Active);
             transform.GetChild(0).gameObject.SetActive(m_Active);
         }

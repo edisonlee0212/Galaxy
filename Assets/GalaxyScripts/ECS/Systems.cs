@@ -65,12 +65,14 @@ namespace Galaxy
         public void Init()
         {
             m_MainCamera = Camera.main;
+            FloatingOrigin = new double3(0, 0, 0);
             calculateStarPositionsJob = new StarPositionsJob { };
             calculateStarOrbitJob = new StarOrbitJob
             {
                 densityWaveProperties = DensityWave.DensityWaveProperties
             };
             m_CalculateOrbit = true;
+            Debug.Log("Starting [StarTransformSimulationSystem]");
             Enabled = true;
         }
         #endregion
@@ -535,6 +537,12 @@ namespace Galaxy
 
         public void Init()
         {
+            if (m_InstanceQuery != null) m_InstanceQuery.Dispose();
+            if (m_LocalToWorlds.IsCreated) m_LocalToWorlds.Dispose();
+            if (m_CustomColors.IsCreated) m_CustomColors.Dispose();
+            if (m_LocalToWorldBuffer != null) m_LocalToWorldBuffer.Release();
+            if (m_EmissionColorBuffer != null) m_EmissionColorBuffer.Release();
+            if (m_ArgsBuffer != null) m_ArgsBuffer.Release();
             m_InstancedIndirect = false;
             m_InstanceQuery = EntityManager.CreateEntityQuery(typeof(LocalToWorld), typeof(StarProperties), typeof(CustomColor));
             //For .Graphics.DrawMeshInstancedIndirect();

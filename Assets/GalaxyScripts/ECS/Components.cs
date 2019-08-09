@@ -249,8 +249,8 @@ namespace Galaxy
             else
             {
                 float actualProportion = proportion / CoreProportion;
-                orbit.a = CenterA + (CoreA - CenterA / 2) * actualProportion;
-                orbit.b = CenterB + (CoreB - CenterB / 2) * actualProportion;
+                orbit.a = CenterA + (CoreA - CenterA) * actualProportion;
+                orbit.b = CenterB + (CoreB - CenterB) * actualProportion;
                 orbit.tiltX = CenterTiltX - (CenterTiltX - CoreTiltX) * actualProportion;
                 orbit.tiltZ = CenterTiltZ - (CenterTiltZ - CoreTiltZ) * actualProportion;
                 orbit.speedMultiplier = CenterSpeed + (CoreSpeed - CenterSpeed) * actualProportion;

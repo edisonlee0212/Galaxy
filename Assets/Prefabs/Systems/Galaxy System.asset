@@ -19,7 +19,7 @@ MonoBehaviour:
   m_StarMaterial: {fileID: 2100000, guid: 08773c71f7c042d4eb027c192265b17d, type: 2}
   m_StarIndirectMaterial: {fileID: 2100000, guid: a106c65558698014aac948099969b232,
     type: 2}
-  m_StarAmount: 50000
+  m_StarAmount: 5000
   m_Light: {fileID: 4496016142793240934, guid: c5c0489c1deaf924ea5c6a2f22691245, type: 3}
   m_PlanetOrbits: {fileID: 5298659160241683731, guid: 321cda228d49c47408b807296cb89538,
     type: 3}

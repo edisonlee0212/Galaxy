@@ -55,7 +55,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 4273425365618070398}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: -98529514, guid: f70555f144d8491a825f0804e09c671c, type: 3}
+  m_Script: {fileID: 11500000, guid: 1344c3c82d62a2a41a3576d8abb8e3ea, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
@@ -86,4 +86,5 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_RawImage: {fileID: 4273425365618070393}
-  m_PlanetSystemInfoWindow: {fileID: 0}
+  m_PlanetSystemInfoWindow: {fileID: 859209266428336103, guid: 06ddf78e62554fa418ef2623e42aea8f,
+    type: 3}

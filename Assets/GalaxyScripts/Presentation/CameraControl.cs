@@ -79,6 +79,7 @@ namespace Galaxy
 
         private void Start()
         {
+            m_Grid = Instantiate(m_Grid);
             Camera = transform.GetChild(0).GetComponent<Camera>();
             m_DefaultCameraLookSpeed = 1;
             m_DefaultCameraMoveSpeed = 2f;

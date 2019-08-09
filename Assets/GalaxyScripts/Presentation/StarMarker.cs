@@ -43,6 +43,7 @@ namespace Galaxy
 
         private void Start()
         {
+            m_PlanetSystemInfoWindow = Instantiate(m_PlanetSystemInfoWindow, FindObjectOfType<Canvas>().transform);
             m_Camera = Camera.main;
             m_EntityManager = World.Active.EntityManager;
             Entity = Entity.Null;
