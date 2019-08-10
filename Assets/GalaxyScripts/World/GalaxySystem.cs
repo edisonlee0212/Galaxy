@@ -154,6 +154,7 @@ namespace Galaxy
         private StarTransformSimulationSystem m_StarTransformSimulationSystem;
         private StarEngine m_StarEngine;
         private PlanetOrbits m_PlanetOrbits;
+        private DataSystem m_DataSystem;
         public GalaxyPattern DensityWave { get => m_DensityWave; set => m_DensityWave = value; }
         public int OrbitsAmount { get => m_OrbitsAmount; set => m_OrbitsAmount = value; }
         public StarTransformSimulationSystem StarTransformSimulationSystem { get => m_StarTransformSimulationSystem; set => m_StarTransformSimulationSystem = value; }
@@ -162,6 +163,7 @@ namespace Galaxy
         public int StarAmount { get => m_StarAmount; set => m_StarAmount = value; }
         public PlanetarySystem PlanetarySystem { get => m_PlanetarySystem; set => m_PlanetarySystem = value; }
         public PlanetOrbits PlanetOrbits { get => m_PlanetOrbits; set => m_PlanetOrbits = value; }
+        public DataSystem DataSystem { get => m_DataSystem; set => m_DataSystem = value; }
 
         #endregion
 
@@ -187,11 +189,15 @@ namespace Galaxy
             
             m_StarEngine.MaxPlanetAmount = maxPlanetAmount;
             m_StarEngine.PlanetMesh = planetMesh;
+
+            m_DataSystem = World.Active.GetOrCreateSystem<DataSystem>();
+            m_DataSystem.StarAmount = starAmount;
         }
 
         public void Init()
         {
             m_StarEngine.Init();
+            m_DataSystem.Init();
             m_StarTransformSimulationSystem.Init();
             m_PlanetarySystem.PlanetOrbits = m_PlanetOrbits;
             m_PlanetarySystem.Init();

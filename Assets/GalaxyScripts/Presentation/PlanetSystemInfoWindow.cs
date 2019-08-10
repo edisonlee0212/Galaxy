@@ -24,9 +24,9 @@ namespace Galaxy
             
         }
 
-        public void ResetInfo(StarProperties starProperties, StarSystemProperties starSystemProperties)
+        public void ResetInfo(StarProperties starProperties, StarData starData)
         {
-            m_PlanetAmount.text = starSystemProperties.PlanetAmount.ToString();
+            m_PlanetAmount.text = starData.PlanetAmount.ToString();
             m_StarName.text = "Star No." + starProperties.Index.ToString();
             m_StarInfo.text = "Mass: \t" + starProperties.Mass.ToString() + "\nProportion: \t" + starProperties.Proportion.ToString();
 

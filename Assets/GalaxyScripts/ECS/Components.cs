@@ -50,7 +50,7 @@ namespace Galaxy
         /// <summary>
         /// This keep track of the position of the star in the list.
         /// </summary>
-        public int Index;
+        public ushort Index;
         /// <summary>
         /// This will help calculate the orbit. Smaller = close to center, bigger = close to disk
         /// </summary>
@@ -85,13 +85,6 @@ namespace Galaxy
     public struct CustomColor : IComponentData
     {
         public Vector4 Color;
-    }
-
-    [Serializable]
-    public struct StarSystemProperties : IComponentData
-    {
-        public float Seed;
-        public int PlanetAmount;
     }
 
     [Serializable]
@@ -162,13 +155,6 @@ namespace Galaxy
             res.z = (xz - wy) * point.x + (yz + wx) * point.y + (1D - (xx + yy)) * point.z;
             return res;
         }
-    }
-
-    [Serializable]
-    public struct PlanetProperties : IComponentData
-    {
-        public float StartTime;
-        public float Mass;
     }
 
     [Serializable]

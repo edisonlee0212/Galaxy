@@ -72,7 +72,6 @@ namespace Galaxy
                 densityWaveProperties = DensityWave.DensityWaveProperties
             };
             m_CalculateOrbit = true;
-            Debug.Log("Starting [StarTransformSimulationSystem]");
             Enabled = true;
         }
         #endregion
@@ -736,6 +735,7 @@ namespace Galaxy
 
         protected override JobHandle OnUpdate(JobHandle inputDeps)
         {
+            Random.seed = Game.Seed;
             EntityArchetype starEntityArchetype = EntityManager.CreateArchetype(
                 typeof(CustomCullingStat),
                 typeof(Translation),
@@ -744,7 +744,6 @@ namespace Galaxy
                 typeof(StarProperties),
                 typeof(CustomColor),
                 typeof(OrbitProperties),
-                typeof(StarSystemProperties),
                 typeof(Scale),
                 typeof(LocalToWorld)
                 );
@@ -755,8 +754,7 @@ namespace Galaxy
                 typeof(Scale),
                 typeof(LocalToWorld),
                 typeof(RenderMesh),
-                typeof(OrbitProperties),
-                typeof(PlanetProperties)
+                typeof(OrbitProperties)
                 );
             EntityArchetype planetAtmosphereArchetype = EntityManager.CreateArchetype(
                 typeof(Translation),
@@ -767,40 +765,11 @@ namespace Galaxy
                 typeof(RenderMesh),
                 typeof(Parent)
                 );
-            for (int i = 0; i < m_StarAmount; i++)
+            for (ushort i = 0; i < m_StarAmount; i++)
             {
                 Entity instance = EntityManager.CreateEntity(starEntityArchetype);
                 m_InsatancedStarEntities.Enqueue(instance);
-                //entityManager.SetName(instance, "Star" + i);
-                if (i == 0)
-                {
-                    for (int j = 0; j < m_MaxPlanetAmount; j++)
-                    {
-                        Entity planet = EntityManager.CreateEntity(planetEntityArchetype);
-                        //entityManager.SetName(planet, "Planet");
-                        EntityManager.SetEnabled(planet, false);
-                        EntityManager.SetComponentData(planet, new PlanetProperties
-                        {
-                            StartTime = Random.Next() * 360,
-                            Mass = 0.01f
-                        });
-                        RenderMesh renderMesh = new RenderMesh
-                        {
-                            mesh = m_PlanetMesh,
-                            layer = 9,
-                            castShadows = UnityEngine.Rendering.ShadowCastingMode.Off,
-                            receiveShadows = false
-                        };
-                        EntityManager.SetSharedComponentData(planet, renderMesh);
 
-                        /*Entity planetAtmosphere = EntityManager.CreateEntity(planetAtmosphereArchetype);
-                        EntityManager.SetComponentData(planetAtmosphere, new Parent { Value = planet });
-                        EntityManager.SetComponentData(planetAtmosphere, new Scale { Value = 1 });
-                        RenderMesh renderMesh2 = new RenderMesh { mesh = m_PlanetMesh };
-                        EntityManager.SetSharedComponentData(planetAtmosphere, renderMesh2);*/
-                    }
-                }
-                m_InsatancedStarEntities.Enqueue(instance);
                 float proportion = Random.Next();
                 float mass = Random.Next();
 
@@ -814,21 +783,182 @@ namespace Galaxy
                     Color = new Color(Random.Next(), Random.Next(), Random.Next(), 1)
                 };
 
-
-                var starSystemProperties = new StarSystemProperties
-                {
-                    Seed = proportion + mass,
-                    PlanetAmount = (int)(Random.Next() * 10) + (int)(Random.Next() * 5)
-                };
-
                 var scale = new Scale { Value = 1 };
                 EntityManager.SetComponentData(instance, scale);
                 EntityManager.SetComponentData(instance, starProperties);
-                EntityManager.SetComponentData(instance, starSystemProperties);
 
             }
             return inputDeps;
         }
     }
+
+    public unsafe struct StarData
+    {
+        public ushort Reference;
+        public byte PlanetAmount;
+        public float Proportion;
+        public fixed int PlanetReferences[10];
+        public EnergyData Energy;
+    }
+
+    public struct PlanetData
+    {
+        public int Reference;
+        public byte Index;
+        public ushort StarReference;
+        public float Seed;
+        public float DistanceToStar;
+        public ResourceData Resource;
+    }
+
+
+    public struct ResourceData
+    {
+
+    }
+
+    public struct EnergyData
+    {
+
+    }
+
+    [DisableAutoCreation]
+    public class DataSystem : JobComponentSystem
+    {
+        #region Attribute
+        
+        private EntityQuery m_InstanceQuery;
+        #endregion
+
+        #region Public
+        private int m_StarAmount;
+        private int m_PlanetAmount;
+        private static NativeArray<StarData> m_StarDatas;
+        private static NativeArray<PlanetData> m_PlanetDatas;
+        public int StarAmount { get => m_StarAmount; set => m_StarAmount = value; }
+        public int PlanetAmount { get => m_PlanetAmount; set => m_PlanetAmount = value; }
+        public static NativeArray<StarData> StarDatas { get => m_StarDatas; }
+        public static NativeArray<PlanetData> PlanetDatas { get => m_PlanetDatas;}
+        #endregion
+
+        #region Managers
+
+        protected override void OnCreateManager()
+        {
+            if (m_InstanceQuery != null) m_InstanceQuery.Dispose();
+            m_InstanceQuery = EntityManager.CreateEntityQuery(typeof(StarProperties));
+        }
+
+        public void Init()
+        {
+            if (StarDatas.IsCreated) StarDatas.Dispose();
+            if (PlanetDatas.IsCreated) PlanetDatas.Dispose();
+            m_StarDatas = new NativeArray<StarData>(m_StarAmount, Allocator.Persistent);
+            
+            Update();
+        }
+
+        protected override void OnDestroyManager()
+        {
+            if (StarDatas.IsCreated) StarDatas.Dispose();
+            if (PlanetDatas.IsCreated) PlanetDatas.Dispose();
+            if (m_InstanceQuery != null) m_InstanceQuery.Dispose();
+        }
+        #endregion
+
+        #region Methods
+        #endregion
+
+        #region Jobs
+        public struct StarDataGenerator : IJobParallelFor
+        {
+            [NativeDisableContainerSafetyRestriction]
+            [WriteOnly] public NativeArray<StarData> starDatas;
+            [ReadOnly] public NativeArray<StarProperties> starsProperties;
+            public void Execute(int index)
+            {
+                StarData starData = default;
+                starData.Reference = starsProperties[index].Index;
+                
+                starData.Proportion = starsProperties[index].Proportion;
+                starData.Energy = default;
+                starDatas[index] = starData;
+            }
+        }
+
+        public struct PlanetDataGenerator : IJobParallelFor
+        {
+            [ReadOnly] public NativeArray<StarData> starDatas;
+            [WriteOnly] public NativeQueue<PlanetData>.Concurrent planetDatas;
+            public void Execute(int index)
+            {
+                int planetAmount = starDatas[index].PlanetAmount;
+                for (int i = 0; i < planetAmount; i++)
+                {
+                    PlanetData planetData = default;
+                    //TODO: Calculate distance to star.
+                    planetData.DistanceToStar = 3 + i;
+                    planetData.Index = (byte)i;
+                    planetData.Resource = default;
+                    planetData.StarReference = (ushort)index;
+                    planetDatas.Enqueue(planetData);
+                }
+            }
+        }
+
+        #endregion
+        protected unsafe override JobHandle OnUpdate(JobHandle inputDeps)
+        {
+            Random.seed = Game.Seed;
+            var starProperties = m_InstanceQuery.ToComponentDataArray<StarProperties>(Allocator.TempJob, out inputDeps);
+            inputDeps.Complete();
+            inputDeps = new StarDataGenerator
+            {
+                starDatas = StarDatas,
+                starsProperties = starProperties
+            }.Schedule(m_StarAmount, 100, inputDeps);
+            inputDeps.Complete();
+            starProperties.Dispose();
+            m_PlanetAmount = 0;
+            for(int i = 0; i < m_StarAmount; i++)
+            {
+                var starData = m_StarDatas[i];
+                var a = Random.Next();
+                var b = Random.Next();
+                starData.PlanetAmount = (byte)((a * a * 7) + (b * 3));
+                m_PlanetAmount += starData.PlanetAmount;
+                m_StarDatas[i] = starData;
+            }
+
+            Debug.Log("Total Star Amount: " + m_StarAmount + "\nTotal Planet Amount: " + m_PlanetAmount + ". Average planet amount: " + (float)m_PlanetAmount / m_StarAmount);
+
+            NativeQueue<PlanetData> planetDataQueue = new NativeQueue<PlanetData>(Allocator.TempJob);
+
+            inputDeps = new PlanetDataGenerator
+            {
+                starDatas = m_StarDatas,
+                planetDatas = planetDataQueue.ToConcurrent()
+            }.Schedule(m_StarAmount, 100, inputDeps);
+            inputDeps.Complete();
+
+            m_PlanetDatas = new NativeArray<PlanetData>(m_PlanetAmount, Allocator.Persistent);
+            for(int i = 0; i < m_PlanetAmount; i++)
+            {
+                var planetData = planetDataQueue.Dequeue();
+                planetData.Reference = i;
+                planetData.Seed = Random.Next();
+                m_PlanetDatas[i] = planetData;
+                var starData = m_StarDatas[planetData.StarReference];
+                starData.PlanetReferences[planetData.Index] = planetData.Reference;
+                m_StarDatas[planetData.StarReference] = starData;
+            }
+            planetDataQueue.Dispose();
+
+            return inputDeps;
+        }
+    }
+
+    
+
     #endregion
 }

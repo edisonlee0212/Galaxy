@@ -25,7 +25,6 @@ namespace Galaxy
         private Quaternion m_TargetRotation;
         private EntityManager m_EntityManager;
         private OrbitProperties m_CurrentPlanetOrbitProperties;
-        private PlanetProperties m_CurrentPlanetProperties;
         private Transform m_CurrentSelectedPlanetHolder;
         #endregion
 
@@ -59,7 +58,6 @@ namespace Galaxy
                 if (m_PlanetEntity != Entity.Null)
                 {
                     m_CurrentPlanetOrbitProperties = m_EntityManager.GetComponentData<OrbitProperties>(m_PlanetEntity);
-                    m_CurrentPlanetProperties = m_EntityManager.GetComponentData<PlanetProperties>(m_PlanetEntity);
                 }
             }
         }

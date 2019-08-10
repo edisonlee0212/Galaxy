@@ -31,7 +31,7 @@ namespace Galaxy
                     if (m_Entity != Entity.Null && m_EntityManager.IsCreated && SelectionSystem.ViewType == ViewType.Galaxy)
                     {
                         m_PlanetSystemInfoWindow.gameObject.SetActive(true);
-                        m_PlanetSystemInfoWindow.ResetInfo(m_EntityManager.GetComponentData<StarProperties>(m_Entity), m_EntityManager.GetComponentData<StarSystemProperties>(m_Entity));
+                        m_PlanetSystemInfoWindow.ResetInfo(m_EntityManager.GetComponentData<StarProperties>(m_Entity), DataSystem.StarDatas[m_EntityManager.GetComponentData<StarProperties>(m_Entity).Index]);
                     }
                     else
                     {

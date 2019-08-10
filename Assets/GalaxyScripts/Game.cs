@@ -30,12 +30,13 @@ namespace Galaxy
         private StarMarker m_StarMarker;
         [SerializeField]
         private PlanetarySystem m_PlanetarySystemPrefab;
-
         [SerializeField]
         private GameObject m_LoadingScreen;
-
+        [SerializeField]
+        private int seed;
         #endregion
 
+        private static int m_Seed;
         private PlanetarySystem m_PlanetarySystem;
         private bool m_DisplayOrbits;
         private List<Orbit> m_OrbitObjects;
@@ -43,17 +44,26 @@ namespace Galaxy
         private float m_TimeSpeed;
         private bool m_Running = true;
         private int m_StarAmount;
+
+        public static int Seed { get => m_Seed; set => m_Seed = value; }
+
         // Start is called before the first frame update
         void Start()
         {
+            
             var go = GameObject.Find("SceneMsg");
             if (go != null)
             {
                 SceneMsg msg = go.GetComponent<SceneMsg>();
                 m_StarAmount = msg.StartAmount;
+                m_Seed = msg.Seed;
                 Destroy(go);
             }
-            else m_StarAmount = 6000;
+            else
+            {
+                m_StarAmount = 6000;
+                m_Seed = seed;
+            }
             m_DensityWaveProperties.DiskAB = Mathf.Pow(m_StarAmount, 0.3333333f) * 400;
             m_LoadingScreen = Instantiate(m_LoadingScreen, FindObjectOfType<Canvas>().transform);
             Debug.Log("Start Loading...");
@@ -74,7 +84,7 @@ namespace Galaxy
             m_GalaxySystem.CameraControl = m_CameraControl;
             m_GalaxySystem.StarMarker = m_StarMarker;
             m_GalaxySystem.PlanetarySystem = m_PlanetarySystem;
-            m_GalaxySystem.Init(m_DensityWaveProperties, m_StarAmount, 20);
+            m_GalaxySystem.Init(m_DensityWaveProperties, m_StarAmount, 10);
             m_TimeSpeed = 0.001f;
             Debug.Assert(m_OrbitsAmount <= 100 && m_OrbitsAmount >= 10);
             m_OrbitObjects = new List<Orbit>();

@@ -10,7 +10,7 @@ namespace Galaxy
         private Orbit m_PlanetOrbitPrefab;
         private int m_MaxPlanetAmount;
         private StarProperties m_StarProperties;
-        private StarSystemProperties m_StarSystemProperties;
+        private StarData m_StarSystemProperties;
         private Orbit[] m_Orbits;
         private Entity m_StarEntity;
 
@@ -30,7 +30,7 @@ namespace Galaxy
             }
         }
 
-        public void Reset(Entity starEntity)
+        /*public void Reset(Entity starEntity)
         {
             m_StarEntity = starEntity;
             m_StarProperties = World.Active.EntityManager.GetComponentData<StarProperties>(m_StarEntity);
@@ -51,6 +51,6 @@ namespace Galaxy
             {
                 Orbits[i].gameObject.SetActive(false);
             }
-        }
+        }*/
     }
 }
