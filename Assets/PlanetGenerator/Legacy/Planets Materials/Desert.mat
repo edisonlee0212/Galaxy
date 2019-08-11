@@ -4,9 +4,8 @@
 Material:
   serializedVersion: 6
   m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
   m_Name: Desert
   m_Shader: {fileID: 4800000, guid: e93c1c04ab4cebe419b51aef5673506a, type: 3}
   m_ShaderKeywords: _EMISSION
@@ -137,9 +136,9 @@ Material:
     - _Parallax: 0.02
     - _Population: 0
     - _RandomSeed: -29
-    - _Refraction: 0.505
+    - _Refraction: 0.5
     - _Relief: 0.815534
-    - _Size: 0.195
+    - _Size: 0.3
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
     - _Specularity: 0
@@ -155,7 +154,7 @@ Material:
     - _AtmosphereColor: {r: 0.9558824, g: 0.6274311, b: 0.41468427, a: 1}
     - _CityColor: {r: 1, g: 0, b: 0.4926471, a: 1}
     - _CloudsColor: {r: 1, g: 0.8438134, b: 0.6764706, a: 1}
-    - _Color: {r: 0.128, g: 0.119771145, b: 0.086016, a: 1}
+    - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _CracksColor: {r: 0.5521205, g: 0.4728662, b: 0.27606025, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _Mountains: {r: 0.13235295, g: 0.08875433, b: 0.07590831, a: 1}

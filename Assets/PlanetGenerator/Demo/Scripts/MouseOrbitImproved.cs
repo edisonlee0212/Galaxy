@@ -3,7 +3,7 @@
 using System.Collections;
 
 
-namespace Galaxy
+namespace PlanetGen
 {
     public class MouseOrbitImproved : MonoBehaviour
     {

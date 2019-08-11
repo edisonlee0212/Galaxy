@@ -101,21 +101,23 @@ namespace Galaxy
                 float distance = Vector3.Distance(Vector3.zero, c1.Value);
                 Vector4 color = properties.GetColor((float)c0.Proportion);
                 color = color.normalized * 2;
-                if (distance < 40)
+                int factor = 340;
+                if (distance < factor)
                 {
-                    distance = 40;
-                    c5.Color = (c0.Color + (Vector4)Color.white).normalized * (2f + (40 - distance) / 20);
+                    c5.Color = (c0.Color + (Vector4)Color.white).normalized * (2f + (factor - distance) / factor / 4);
+                    c4.Value = c0.Mass;
                 }
                 else if (distance > 15000)
                 {
                     c5.Color = ((c0.Color * 40 + color * (distance - 40)) / distance).normalized * 1.5f;
                     distance = 15000;
+                    c4.Value = c0.Mass * distance / factor;
                 }
                 else
                 {
                     c5.Color = ((c0.Color * 20 + (Vector4)Color.white * 20 + color * (distance - 40)) / distance).normalized * 1.8f;
+                    c4.Value = c0.Mass * distance / factor;
                 }
-                c4.Value = (float)c0.Mass * distance / 80;
             }
 
         }
@@ -282,7 +284,7 @@ namespace Galaxy
                 }
                 d = Vector3.Distance(Vector3.zero, c0.Value);
                 //Collect information for beacon.
-                if (d < 60 && Mathf.Abs(c0.Value.y) < 20)
+                if (d < 150)
                 {
                     Vector2 b = new Vector2(c0.Value.x, c0.Value.z);
                     //Here we try to calculate the LocalToWorld for the beacons.
@@ -292,9 +294,9 @@ namespace Galaxy
                     //If beacon is too short to display we return. 
                     if (length < c1.Value) return;
                     float4x4 matrix = new float4x4();
-                    matrix.c0.x = 0.05f;
+                    matrix.c0.x = Mathf.Clamp(10.0f / d, 0.01f, 0.3f);
                     matrix.c1.y = length;
-                    matrix.c2.z = 0.05f;
+                    matrix.c2.z = Mathf.Clamp(10.0f / d, 0.01f, 0.3f);
                     matrix.c3.x = position.x;
                     matrix.c3.y = position.y;
                     matrix.c3.z = position.z;
@@ -634,8 +636,7 @@ namespace Galaxy
 
         protected override JobHandle OnUpdate(JobHandle inputDeps)
         {
-
-            m_LocalToWorlds = new NativeArray<LocalToWorld>(m_StarAmount, Allocator.TempJob);
+            /*m_LocalToWorlds = new NativeArray<LocalToWorld>(m_StarAmount, Allocator.TempJob);
             m_CustomColors = new NativeArray<CustomColor>(m_StarAmount, Allocator.TempJob);
 
             inputDeps = new ExtractionDataJob
@@ -643,6 +644,10 @@ namespace Galaxy
                 localToWorlds = m_LocalToWorlds,
                 customColors = m_CustomColors
             }.Schedule(this, inputDeps);
+            inputDeps.Complete();*/
+            m_LocalToWorlds = m_InstanceQuery.ToComponentDataArray<LocalToWorld>(Allocator.TempJob, out inputDeps);
+            inputDeps.Complete();
+            m_CustomColors = m_InstanceQuery.ToComponentDataArray<CustomColor>(Allocator.TempJob, out inputDeps);
             inputDeps.Complete();
 
             if (m_InstancedIndirect)
@@ -775,7 +780,7 @@ namespace Galaxy
 
                 var starProperties = new StarProperties
                 {
-                    Mass = (0.5f + mass * 2) / 10f,
+                    Mass = 0.5f + mass,
                     StartingTime = Random.Next() * 360,
                     Index = i,
                     Proportion = proportion,
@@ -897,7 +902,7 @@ namespace Galaxy
                 {
                     PlanetData planetData = default;
                     //TODO: Calculate distance to star.
-                    planetData.DistanceToStar = 3 + i;
+                    planetData.DistanceToStar = 6 + 2 * i;
                     planetData.Index = (byte)i;
                     planetData.Resource = default;
                     planetData.StarReference = (ushort)index;

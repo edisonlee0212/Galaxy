@@ -1,10 +1,10 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using Galaxy;
+using PlanetGen;
 using UnityEngine.UI;
 using System.Linq;
-
+using Galaxy;
 public class PlanetManager : MonoBehaviour {
 
     public Dropdown dropDownHeight;

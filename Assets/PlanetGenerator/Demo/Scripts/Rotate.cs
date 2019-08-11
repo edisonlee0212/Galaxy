@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
-namespace Galaxy
+namespace PlanetGen
 {
     public class Rotate : MonoBehaviour
     {

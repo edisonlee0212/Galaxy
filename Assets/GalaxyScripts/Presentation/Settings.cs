@@ -12,6 +12,7 @@ namespace Galaxy {
 
         public void Init(GalaxyPatternProperties densityWaveProperties, float timeSpeed, bool displayOrbit)
         {
+            m_Active = true;
             m_List = transform.GetChild(1).gameObject;
             m_List.transform.GetChild(0).GetComponent<Toggle>().isOn = displayOrbit;
             m_List.transform.GetChild(1).GetComponentInChildren<Slider>().value = densityWaveProperties.DiskSpeed;

@@ -10,7 +10,7 @@ namespace Galaxy
         private TextMeshProUGUI m_TextMeshProUGUI;
         protected void FixedUpdate()
         {
-            m_TextMeshProUGUI.text = "X-" + (StarTransformSimulationSystem.FloatingOrigin.x.ToString()) + "\nY-" + (StarTransformSimulationSystem.FloatingOrigin.y.ToString()) + "\nZ-" + (StarTransformSimulationSystem.FloatingOrigin.z.ToString());
+            m_TextMeshProUGUI.text = "X-[" + (StarTransformSimulationSystem.FloatingOrigin.x.ToString()) + "]\nY-[" + (StarTransformSimulationSystem.FloatingOrigin.y.ToString()) + "]\nZ-[" + (StarTransformSimulationSystem.FloatingOrigin.z.ToString()) + "]";
         }
     }
 }

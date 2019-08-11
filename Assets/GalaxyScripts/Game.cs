@@ -64,7 +64,7 @@ namespace Galaxy
                 m_StarAmount = 6000;
                 m_Seed = seed;
             }
-            m_DensityWaveProperties.DiskAB = Mathf.Pow(m_StarAmount, 0.3333333f) * 400;
+            m_DensityWaveProperties.DiskAB = Mathf.Pow(m_StarAmount, 0.3333333f) * 1000;
             m_LoadingScreen = Instantiate(m_LoadingScreen, FindObjectOfType<Canvas>().transform);
             Debug.Log("Start Loading...");
             Init();

@@ -15,7 +15,7 @@ GameObject:
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
+  m_StaticEditorFlags: 4294967295
   m_IsActive: 1
 --- !u!4 &8947004173018962887
 Transform:
@@ -44,4 +44,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_PlanetHolderPrefab: {fileID: 8135207189046432807, guid: affc4e93840002f49b173a9e2816e49a,
+    type: 3}
+  m_PlanetPrefabs:
+  - {fileID: 114440849474459570, guid: 9917abb264bfa864c89aae0e4f837fdf, type: 3}
+  - {fileID: 114358306663455640, guid: 132b6995d467d9a41a04fe3bf68ef9e4, type: 3}
+  - {fileID: 114459277808773120, guid: 56a7161d3e2161743ad7a9c33f02e12f, type: 3}
+  - {fileID: 114994957199364206, guid: 44fec056c8eb2414b94c93adfb26abe6, type: 3}
+  - {fileID: 114003845767938440, guid: 217532440bd3dc04483af9511a103f92, type: 3}
+  - {fileID: 114406085881601990, guid: e677b2da8fbbb6c4a8914ae2f58620ac, type: 3}
+  - {fileID: 114741135231812980, guid: 12585ce1a3b13ae4e9969a8a1803273c, type: 3}
+  - {fileID: 114089814600630386, guid: fe42d8b7774ebff408739c299f0dbcbd, type: 3}
+  m_PlanetMarkerPrefab: {fileID: 1022042097892160242, guid: 03d46918ff27d0a40be1e4235907ebb4,
     type: 3}

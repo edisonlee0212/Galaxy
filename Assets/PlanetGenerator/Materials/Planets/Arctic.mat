@@ -9,7 +9,7 @@ Material:
   m_PrefabAsset: {fileID: 0}
   m_Name: Arctic
   m_Shader: {fileID: 4800000, guid: 9809683c78abc3b4d840627b3b8abcdb, type: 3}
-  m_ShaderKeywords: _CLOUDS _CLOUDSAVGBLEND_ON _COMPLEXCLOUDS _EMISSIVELIQUID_ON
+  m_ShaderKeywords: _CLOUDS _CLOUDSAVGBLEND_ON _COMPLEXCLOUDS
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
@@ -160,23 +160,23 @@ Material:
     - _HeatMultiplier: 0.953
     - _Metallic: 0
     - _Mode: 0
-    - _NoVegetationMultiplier: 0.08981644
+    - _NoVegetationMultiplier: 0.16
     - _NormalIntencity: 1
     - _OcclusionStrength: 1
     - _OceanOpacity: 1
     - _Parallax: 0.02
     - _PolesContrast: 0.555
     - _Population: 0.529
-    - _PopulationFrostModifier: 0.14806183
-    - _PopulationLandOcean: 1
+    - _PopulationFrostModifier: 0.142
+    - _PopulationLandOcean: 0
     - _PopulationShoresMountains: 0
-    - _RandomSeed: 322
+    - _RandomSeed: 1000
     - _Refraction: 0
     - _Relief: 0.35885143
     - _Shininess: 0.078125
     - _ShoresContrast: 0.418
     - _SimpleGradientColor: 0
-    - _Size: 0.45640847
+    - _Size: 0.389
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
     - _Specularity: 0.303
@@ -189,7 +189,7 @@ Material:
     - _VegetationLowTempResistance: 0
     - _VegetationMultiplier: 1
     - _VegetationSpread: 0.167
-    - _WaterLevel: -0.46072298
+    - _WaterLevel: -1
     - _ZWrite: 1
     m_Colors:
     - _AtmosphereColor: {r: 0.07203, g: 0.147, b: 0.147, a: 1}

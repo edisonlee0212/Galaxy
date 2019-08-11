@@ -64,7 +64,7 @@ Material:
     - _Glossiness: 0
     - _GlossyReflections: 1
     - _GridSize: 10000
-    - _LineSize: 0.05
+    - _LineSize: 0.01
     - _Metallic: 0
     - _Mode: 0
     - _OcclusionStrength: 1
@@ -81,5 +81,5 @@ Material:
     - _CellColor: {r: 1, g: 1, b: 1, a: 0}
     - _Color: {r: 0.935151, g: 0.9705882, b: 0.3282872, a: 0}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
-    - _LineColor: {r: 1, g: 1, b: 1, a: 0.003921569}
+    - _LineColor: {r: 0.7264151, g: 0.7264151, b: 0.7264151, a: 0.003921569}
     - _SelectedColor: {r: 1, g: 1, b: 1, a: 0}

@@ -5,22 +5,44 @@ using Unity.Mathematics;
 using UnityEngine;
 namespace Galaxy
 {
+    public enum PlanetType
+    {
+        Arctic,
+        Arid,
+        Baren,
+        Continental,
+        Desert,
+        Jungle,
+        Lava,
+        Toxic
+    }
+
     public class PlanetarySystem : MonoBehaviour
     {
+        #region Attributes
         [SerializeField]
         private PlanetHolder m_PlanetHolderPrefab;
+        [SerializeField]
+        private Planet[] m_PlanetPrefabs;
+        [SerializeField]
+        private PlanetMarker m_PlanetMarkerPrefab;
+
         private StarProperties m_StarProperties;
         private EntityManager m_EntityManager;
         private StarData m_StarData;
+        private Camera m_Camera;
+        #endregion
+
+        #region Public
         private float m_Time;
-        //private Planet[] m_Planets;
         private PlanetHolder[] m_PlanetHolders;
         private int m_MaxPlanetAmount;
         private OrbitProperties[] m_OrbitProperties;
         private PlanetData[] m_PlanetDatas;
         private PlanetOrbits m_PlanetOrbits;
         private Light m_Light;
-        //public Planet[] Planets { get => m_Planets; set => m_Planets = value; }
+        private PlanetMarker[] m_PlanetMarkers;
+        private CameraControl m_CameraControl;
         public int MaxPlanetAmount { get => m_MaxPlanetAmount; set => m_MaxPlanetAmount = value; }
         public PlanetOrbits PlanetOrbits { get => m_PlanetOrbits; set => m_PlanetOrbits = value; }
         public OrbitProperties[] OrbitProperties { get => m_OrbitProperties; set => m_OrbitProperties = value; }
@@ -28,25 +50,33 @@ namespace Galaxy
         public PlanetData[] PlanetProperties { get => m_PlanetDatas; set => m_PlanetDatas = value; }
         public Light Light { get => m_Light; set => m_Light = value; }
         public PlanetHolder[] PlanetHolders { get => m_PlanetHolders; set => m_PlanetHolders = value; }
+        public PlanetMarker[] PlanetMarkers { get => m_PlanetMarkers; set => m_PlanetMarkers = value; }
+        public CameraControl CameraControl { get => m_CameraControl; set => m_CameraControl = value; }
+        #endregion
 
         public void Start()
         {
             m_EntityManager = World.Active.EntityManager;
+            m_Camera = Camera.main;
         }
 
         public void Init()
         {
             m_PlanetHolders = new PlanetHolder[m_MaxPlanetAmount];
             m_OrbitProperties = new OrbitProperties[m_MaxPlanetAmount];
+            m_PlanetMarkers = new PlanetMarker[m_MaxPlanetAmount];
             m_PlanetDatas = new PlanetData[m_MaxPlanetAmount];
+            var canvas = FindObjectOfType<Canvas>();
             for (int i = 0; i < m_MaxPlanetAmount; i++)
             {
                 m_PlanetHolders[i] = Instantiate(m_PlanetHolderPrefab, transform);
-                m_PlanetHolders[i].Planet.gameObject.SetActive(true);
+                m_PlanetMarkers[i] = Instantiate(m_PlanetMarkerPrefab, canvas.transform);
+                m_PlanetMarkers[i].gameObject.SetActive(false);
                 m_PlanetHolders[i].gameObject.SetActive(false);
                 m_PlanetDatas[i] = default;
             }
         }
+
         public unsafe void Reset(Entity starEntity)
         {
             if (starEntity != Entity.Null && m_PlanetOrbits != null && m_PlanetHolders != null)
@@ -62,21 +92,29 @@ namespace Galaxy
                     m_PlanetDatas[i] = planetData;
                     OrbitProperties[i] = new OrbitProperties
                     {
-                        tiltX = Random.Next() * 10,
-                        tiltZ = Random.Next() * 10,
+                        tiltX = Random.Next() * 5 - 2.5f,
+                        tiltZ = Random.Next() * 5 - 2.5f,
                         a = m_StarProperties.Mass * planetData.DistanceToStar,
                         b = m_StarProperties.Mass * planetData.DistanceToStar,
                         speedMultiplier = 5
                     };
                     m_PlanetOrbits.Orbits[i].orbit = m_OrbitProperties[i];
                     if(m_PlanetOrbits.Orbits[i] != null) m_PlanetOrbits.Orbits[i].gameObject.SetActive(true);
-                    if(m_PlanetHolders[i].Planet != null) m_PlanetHolders[i].Planet.transform.localScale = Vector3.one * 0.1f;
+                    if (m_PlanetHolders[i].Planet != null)
+                    {
+                        //TODO: Set up planet material here.
+                        m_PlanetHolders[i].Planet.transform.localScale = Vector3.one * 0.1f;
+                        m_PlanetHolders[i].Planet.PlanetMaterial = m_PlanetPrefabs[(int)(planetData.Seed * 24) % 8].PlanetMaterial;
+                        m_PlanetHolders[i].Planet.transform.GetChild(0).GetComponent<MeshRenderer>().material = m_PlanetPrefabs[(int)(planetData.Seed * 24) % 8].AtmosphereMaterial;
+                    }
                     m_PlanetHolders[i].gameObject.SetActive(true);
-                    m_PlanetOrbits.Orbits[i].CalculateEllipse(0.01f);
+                    m_PlanetMarkers[i].gameObject.SetActive(true);
+                    m_PlanetOrbits.Orbits[i].CalculateEllipse(0.1f);
                 }
                 for (int i = planetAmount; i < m_PlanetHolders.Length; i++)
                 {
                     m_PlanetHolders[i].gameObject.SetActive(false);
+                    m_PlanetMarkers[i].gameObject.SetActive(false);
                     m_PlanetOrbits.Orbits[i].gameObject.SetActive(false);
                 }
                 m_Light.enabled = true;
@@ -87,6 +125,7 @@ namespace Galaxy
                 for (int i = 0; i < m_StarData.PlanetAmount; i++)
                 {
                     m_PlanetHolders[i].gameObject.SetActive(false);
+                    m_PlanetMarkers[i].gameObject.SetActive(false);
                     m_PlanetOrbits.Orbits[i].gameObject.SetActive(false);
                 }
                 m_StarData.PlanetAmount = 0;
@@ -98,9 +137,18 @@ namespace Galaxy
             m_Time += UnityEngine.Time.deltaTime / 300;
             for (int i = 0; i < m_StarData.PlanetAmount; i++)
             {
-                m_PlanetHolders[i].transform.position = (float3)m_OrbitProperties[i].GetPoint(m_Time + m_PlanetDatas[i].Seed);
+                Vector3 position = (float3)m_OrbitProperties[i].GetPoint(m_Time + m_PlanetDatas[i].Seed);
+                float distance = Vector3.Distance(m_Camera.transform.position, m_PlanetHolders[i].transform.position);
+                m_PlanetHolders[i].transform.position = position;
                 if(m_PlanetHolders[i].Planet != null) m_PlanetHolders[i].Planet.transform.rotation = Quaternion.AngleAxis(m_Time * 10000, Quaternion.AngleAxis(m_OrbitProperties[i].tiltZ, Vector3.forward) * Quaternion.AngleAxis((float)m_OrbitProperties[i].tiltX, Vector3.right) * Vector3.up);
+                Vector3 markerPosition = m_Camera.WorldToScreenPoint(position);
+                if (markerPosition.x < 0 || markerPosition.y < 0) markerPosition = Vector3.one * 20000;
+                m_PlanetMarkers[i].transform.position = markerPosition;
 
+                m_PlanetMarkers[i].transform.localScale = Vector3.one *  3 / distance;
+                Color color = Color.white;
+                color.a = (distance - 1f) / 10 < 0.001f ? 0 : (distance - 1f) / 10;
+                m_PlanetMarkers[i].Image.color = color;
             }
         }
     }

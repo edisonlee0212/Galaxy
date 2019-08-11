@@ -18,8 +18,6 @@ namespace Galaxy
     {
         #region Attributes
         [SerializeField]
-        private PlanetGenerator m_PlanetGenerator;
-        [SerializeField]
         private NebulasSystem m_NebulasSystem;
         [SerializeField]
         private Mesh m_StarMesh;
@@ -78,17 +76,18 @@ namespace Galaxy
             Light light = Instantiate(m_Light);
             light.enabled = false;
             m_PlanetarySystem.Light = light;
+            m_PlanetarySystem.CameraControl = m_CameraControl;
             PlanetOrbits planetOrbits = Instantiate(m_PlanetOrbits);
             planetOrbits.MaxPlanetAmount = MaxPlanetAmount;
             planetOrbits.Init();
-            m_PlanetGenerator.Init();
+
 
             //Create nebula system
             m_NebulasSystem.GalaxyPattern = GalaxyPattern;
             m_NebulasSystem.Init();
 
             //Create galaxy system
-            Galaxy = new Galaxy(m_MaxPlanetAmount, m_GalaxyPattern, m_PlanetMesh, m_PlanetGenerator, StarAmount, planetOrbits);
+            Galaxy = new Galaxy(m_MaxPlanetAmount, m_GalaxyPattern, m_PlanetMesh, StarAmount, planetOrbits);
             Galaxy.PlanetarySystem = PlanetarySystem;
             Galaxy.Init();
 
@@ -122,9 +121,6 @@ namespace Galaxy
             m_SelectionSystem.Enabled = false;
             m_StarRenderSystem.Enabled = false;
             m_BeaconRenderSystem.Enabled = false;
-            //World.Active.DestroySystem(m_SelectionSystem);
-            //World.Active.DestroySystem(m_StarRenderSystem);
-            //World.Active.DestroySystem(m_BeaconRenderSystem);
         }
 
         #region Methods
@@ -142,7 +138,6 @@ namespace Galaxy
     public class Galaxy
     {
         #region Attributes
-        //private PlanetTransformSimulationSystem m_PlanetPositionSimulationSystem;
         private PlanetarySystem m_PlanetarySystem;
         #endregion
 
@@ -168,7 +163,7 @@ namespace Galaxy
         #endregion
 
         #region Managers
-        public Galaxy(int maxPlanetAmount, GalaxyPattern densityWave, Mesh planetMesh, PlanetGenerator planetGenerator, int starAmount, PlanetOrbits planetOrbits)
+        public Galaxy(int maxPlanetAmount, GalaxyPattern densityWave, Mesh planetMesh, int starAmount, PlanetOrbits planetOrbits)
         {
             m_StarAmount = starAmount;
             m_PlanetOrbits = planetOrbits;

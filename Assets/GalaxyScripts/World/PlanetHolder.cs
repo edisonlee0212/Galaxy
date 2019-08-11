@@ -6,11 +6,14 @@ namespace Galaxy
 {
     public class PlanetHolder : MonoBehaviour
     {
-        [NonSerialized]
-        public Planet Planet;
+        private Planet m_Planet;
+
+        public Planet Planet { get => m_Planet; }
+
         protected void Awake()
         {
-            Planet = transform.GetChild(0).GetComponent<Planet>();
+            m_Planet = transform.GetChild(0).GetComponent<Planet>();
         }
+
     }
 }

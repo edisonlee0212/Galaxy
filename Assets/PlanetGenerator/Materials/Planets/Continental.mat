@@ -21,7 +21,7 @@ Material:
     m_TexEnvs:
     - _AdditionalDetails:
         m_Texture: {fileID: 2800000, guid: e5e5737b915f8854cb84953938c3aea1, type: 3}
-        m_Scale: {x: 0.17, y: 0.17}
+        m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _BumpMap:
         m_Texture: {fileID: 0}
@@ -29,7 +29,7 @@ Material:
         m_Offset: {x: 0, y: 0}
     - _Cities:
         m_Texture: {fileID: 2800000, guid: a7e1c9f4b6d143b41bc99d303d55d1dd, type: 3}
-        m_Scale: {x: 1.45, y: 1.45}
+        m_Scale: {x: 1.299, y: 1.299}
         m_Offset: {x: 0, y: 0}
     - _City:
         m_Texture: {fileID: 2800000, guid: a7e1c9f4b6d143b41bc99d303d55d1dd, type: 3}
@@ -136,7 +136,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     m_Floats:
-    - _Ambient: 0.025929734
+    - _Ambient: 0
     - _Atmosphere: 1
     - _BumpScale: 1
     - _COMPLEX_CLOUDS: 1
@@ -144,8 +144,8 @@ Material:
     - _CloudsAvgBlend: 0
     - _CloudsBias: 0
     - _CloudsHeight: 0.22
-    - _CloudsSpeed: 1
-    - _CloudsSpread: 0.6146179
+    - _CloudsSpeed: 0.11
+    - _CloudsSpread: 0.53
     - _Cracks: 0
     - _CracksDepth: 0
     - _Cutoff: 0.5
@@ -155,34 +155,34 @@ Material:
     - _Emission: 0
     - _EmissiveCracks: 0
     - _EmissiveLiquid: 0
-    - _Fertility: 0.66056216
-    - _Frost: -0.0002677094
-    - _FrostContrast: 0.66878086
-    - _Gloss: 0.20864508
+    - _Fertility: 0.79
+    - _Frost: -0.27
+    - _FrostContrast: 0.914
+    - _Gloss: 0.351
     - _GlossMapScale: 1
     - _Glossiness: 0
     - _GlossyReflections: 1
-    - _Heat: 0.3289966
-    - _HeatMultiplier: 0.06458112
+    - _Heat: 0.329
+    - _HeatMultiplier: 0.50489783
     - _Metallic: 0
     - _Mode: 0
-    - _NoVegetationMultiplier: 1
+    - _NoVegetationMultiplier: 0.362
     - _NormalIntencity: 1
     - _OcclusionStrength: 1
     - _OceanOpacity: 1
     - _Parallax: 0.02
     - _PolesContrast: 0.555
-    - _Population: 0.398
-    - _PopulationFrostModifier: 0.1725695
-    - _PopulationLandOcean: 1
-    - _PopulationShoresMountains: 1
-    - _RandomSeed: 149
+    - _Population: 0.434
+    - _PopulationFrostModifier: 0.419
+    - _PopulationLandOcean: 0
+    - _PopulationShoresMountains: 0
+    - _RandomSeed: 133
     - _Refraction: 0
-    - _Relief: 0.32540292
+    - _Relief: 0.258
     - _Shininess: 0.078125
-    - _ShoresContrast: 0.14441817
+    - _ShoresContrast: 0.459
     - _SimpleGradientColor: 0
-    - _Size: 1
+    - _Size: 0.29
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
     - _Specularity: 0.121
@@ -191,11 +191,11 @@ Material:
     - _Temperature: -1
     - _UVSec: 0
     - _VegetationContrast: 0.352
-    - _VegetationFrostResistance: 0.15915935
+    - _VegetationFrostResistance: 0.392
     - _VegetationLowTempResistance: 0
-    - _VegetationMultiplier: 0
+    - _VegetationMultiplier: 1
     - _VegetationSpread: 0.167
-    - _WaterLevel: 0.32799995
+    - _WaterLevel: 0.352
     - _ZWrite: 1
     - _node_1376: 50
     - _node_3847: 0

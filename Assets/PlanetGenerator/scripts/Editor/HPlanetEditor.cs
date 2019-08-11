@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
+using PlanetGen;
 using Galaxy;
 [CustomEditor(typeof(Planet))]
 public class HPlanetEditor : Editor {
