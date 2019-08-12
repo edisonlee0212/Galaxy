@@ -37,7 +37,7 @@ namespace Galaxy
         [SerializeField]
         private Material m_BeaconMaterial;
         
-        private StarRenderSystem m_StarRenderSystem;
+        private GalaxyRenderSystem m_StarRenderSystem;
         private BeaconRenderSystem m_BeaconRenderSystem;
         private EntityManager m_EntityManager;
         #endregion
@@ -95,22 +95,22 @@ namespace Galaxy
 
             //Create selection system
             m_SelectionSystem = World.Active.GetOrCreateSystem<SelectionSystem>();
-            m_SelectionSystem.CameraControl = m_CameraControl;
-            m_SelectionSystem.PlanetarySystem = m_PlanetarySystem;
-            m_SelectionSystem.StarMarker = m_StarMarker;
+            SelectionSystem.CameraControl = m_CameraControl;
+            SelectionSystem.PlanetarySystem = m_PlanetarySystem;
+            SelectionSystem.StarMarker = m_StarMarker;
             m_SelectionSystem.Init();
 
             //Create renderer
-            m_StarRenderSystem = World.Active.GetOrCreateSystem<StarRenderSystem>();
+            m_StarRenderSystem = World.Active.GetOrCreateSystem<GalaxyRenderSystem>();
             m_BeaconRenderSystem = World.Active.GetOrCreateSystem<BeaconRenderSystem>();
-            m_StarRenderSystem.Light = light;
-            m_StarRenderSystem.PlanetOrbits = planetOrbits;
-            m_StarRenderSystem.StarAmount = StarAmount;
-            m_StarRenderSystem.StarMesh = m_StarMesh;
-            m_StarRenderSystem.StarMaterial = m_StarMaterial;
-            m_StarRenderSystem.StarIndirectMaterial = m_StarIndirectMaterial;
-            m_BeaconRenderSystem.BeaconMaterial = m_BeaconMaterial;
-            m_BeaconRenderSystem.BeaconMesh = m_BeaconMesh;
+            GalaxyRenderSystem.Light = light;
+            GalaxyRenderSystem.PlanetOrbits = planetOrbits;
+            GalaxyRenderSystem.StarAmount = StarAmount;
+            GalaxyRenderSystem.StarMesh = m_StarMesh;
+            GalaxyRenderSystem.StarMaterial = m_StarMaterial;
+            GalaxyRenderSystem.StarIndirectMaterial = m_StarIndirectMaterial;
+            BeaconRenderSystem.BeaconMaterial = m_BeaconMaterial;
+            BeaconRenderSystem.BeaconMesh = m_BeaconMesh;
             m_StarRenderSystem.Init();
             m_BeaconRenderSystem.Init();
         }
@@ -118,11 +118,10 @@ namespace Galaxy
 
         public void ShutDown()
         {
-            
             m_Galaxy.Destroy();
-            m_SelectionSystem.Enabled = false;
-            m_StarRenderSystem.Enabled = false;
-            m_BeaconRenderSystem.Enabled = false;
+            m_SelectionSystem.ShutDown();
+            m_StarRenderSystem.ShutDown();
+            m_BeaconRenderSystem.ShutDown();
             m_StarMarker.enabled = false;
             var entitiesArray = m_EntityManager.GetAllEntities(Allocator.Temp);
             m_EntityManager.DestroyEntity(entitiesArray);
@@ -180,10 +179,10 @@ namespace Galaxy
             
             m_StarEngine = World.Active.GetOrCreateSystem<StarEngine>();
 
-            m_StarTransformSimulationSystem.DiscreteSimulationTimeStep = 0.02f;
-            m_StarTransformSimulationSystem.ContinuousSimulation = true;
+            StarTransformSimulationSystem.DiscreteSimulationTimeStep = 0.02f;
+            StarTransformSimulationSystem.ContinuousSimulation = true;
 
-            m_StarTransformSimulationSystem.DensityWave = m_DensityWave;
+            StarTransformSimulationSystem.DensityWave = m_DensityWave;
             m_StarEngine.DensityWave = m_DensityWave;
             m_StarEngine.StarAmount = starAmount;
             
@@ -191,7 +190,7 @@ namespace Galaxy
             m_StarEngine.PlanetMesh = planetMesh;
 
             m_DataSystem = World.Active.GetOrCreateSystem<DataSystem>();
-            m_DataSystem.StarAmount = starAmount;
+            DataSystem.StarAmount = starAmount;
         }
 
         public void Init()
@@ -205,8 +204,7 @@ namespace Galaxy
         
         public void Destroy()
         {
-            m_StarTransformSimulationSystem.Enabled = false;
-            
+            m_StarTransformSimulationSystem.ShutDown();
         }
 
         #endregion

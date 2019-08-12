@@ -22,6 +22,7 @@ public class CameraControl : MonoBehaviour
     private Quaternion m_PreviousRotation;
     private Vector3 m_TargetPosition;
     private Quaternion m_TargetRotation;
+    private float m_PreviousScaleFactor;
     private EntityManager m_EntityManager;
     private OrbitProperties m_CurrentPlanetOrbitProperties;
     private Transform m_CurrentSelectedPlanetHolder;
@@ -108,6 +109,7 @@ public class CameraControl : MonoBehaviour
         m_PreviousCameraRotation = m_Camera.transform.localRotation;
         if (viewType == ViewType.StarSystem)
         {
+            m_PreviousScaleFactor = StarTransformSimulationSystem.ScaleFactor;
             m_TargetCameraPosition = new Vector3(0, 6f, -8f);
             m_PreviousPosition = transform.localPosition;
             m_TargetPosition = Vector3.zero;
@@ -157,12 +159,12 @@ public class CameraControl : MonoBehaviour
         Vector3 position = transform.position;
         if (!m_InTransition)
         {
-
             if (ViewType == ViewType.Galaxy)
             {
                 m_CenterDistance -= Input.GetAxis("Mouse ScrollWheel") * 0.5f;
                 m_CenterDistance -= Input.GetAxis("QE") * 3f;
                 m_CenterDistance = Mathf.Clamp(m_CenterDistance, 30f, 200f);
+                StarTransformSimulationSystem.ScaleFactor = (m_CenterDistance - 30) / 170 + 1;
                 if (Input.GetKey(KeyCode.LeftControl))
                 {
                     StarTransformSimulationSystem.FloatingOrigin.y -= Time.deltaTime * m_CenterDistance * 2 * m_CameraMoveSpeed;
@@ -197,7 +199,6 @@ public class CameraControl : MonoBehaviour
             }
             else
             {
-                
                 if (m_ViewType == ViewType.StarSystem)
                 {
                     m_CenterDistance -= Input.GetAxis("Vertical") * 0.3f;
@@ -256,6 +257,7 @@ public class CameraControl : MonoBehaviour
                     m_PlanetarySystem.Reset(Entity.Null);
                     SelectionSystem.ViewType = ViewType.Galaxy;
                 }
+                StarTransformSimulationSystem.ScaleFactor = 1;
             }
             float t = Mathf.Pow((m_TransitionTime - m_Timer) / m_TransitionTime, 0.25f);
             m_Camera.transform.localPosition = Vector3.Lerp(m_PreviousCameraPosition, m_TargetCameraPosition, t);
@@ -284,6 +286,7 @@ public class CameraControl : MonoBehaviour
             else
             {
                 transform.localPosition = Vector3.Lerp(m_PreviousPosition, m_TargetPosition, t);
+                StarTransformSimulationSystem.ScaleFactor = 1 + (m_PreviousScaleFactor - 1) * (1 - t);
                 c.a = 0;
             }
             transform.GetChild(1).GetComponent<MeshRenderer>().material.SetColor("_TintColor", c);

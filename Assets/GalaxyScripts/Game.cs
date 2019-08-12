@@ -124,7 +124,7 @@ namespace Galaxy
         /// </summary>
         public void Recalculate()
         {
-            m_GalaxySystem.Galaxy.StarTransformSimulationSystem.CalculateOrbit = true;
+            StarTransformSimulationSystem.CalculateOrbit = true;
             for (int i = 0; i < m_OrbitsAmount; i++)
             {
                 m_OrbitObjects[i].orbit = m_DensityWave.GetOrbit((float)i / (m_OrbitsAmount - 1), float3.zero);

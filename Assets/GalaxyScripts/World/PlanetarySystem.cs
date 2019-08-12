@@ -182,7 +182,7 @@ namespace Galaxy
                 Vector3 scale = distance < 2 ? Vector3.one : Vector3.one / Mathf.Sqrt(distance - 1);
                 planetMarker.transform.localScale = scale;
                 Color color = Color.white;
-                color.a = (distance - 0.3f) < 0.001f ? 0 : (distance - 0.3f);
+                color.a = (distance * 4 - 0.3f) < 0.001f ? 0 : (distance * 4 - 0.3f) > 1f ? 1f : (distance * 4 - 0.3f);
                 if (m_Timer > 0.02f)
                 {
                     planetMarker.SetColor(color);
