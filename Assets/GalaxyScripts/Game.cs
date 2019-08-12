@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using Unity.Collections;
 using Unity.Entities;
@@ -34,23 +35,23 @@ namespace Galaxy
         private GameObject m_LoadingScreen;
         [SerializeField]
         private int seed;
-        #endregion
 
-        private static int m_Seed;
         private PlanetarySystem m_PlanetarySystem;
         private bool m_DisplayOrbits;
         private List<Orbit> m_OrbitObjects;
         private GalaxyPattern m_DensityWave;
         private float m_TimeSpeed;
-        private bool m_Running = true;
+        private bool m_Running = false;
         private int m_StarAmount;
+        #endregion
 
+        private static int m_Seed;
+        public const int ElementSize = 108;
         public static int Seed { get => m_Seed; set => m_Seed = value; }
 
         // Start is called before the first frame update
         void Start()
         {
-            
             var go = GameObject.Find("SceneMsg");
             if (go != null)
             {
@@ -65,11 +66,7 @@ namespace Galaxy
                 m_Seed = seed;
             }
             m_DensityWaveProperties.DiskAB = Mathf.Pow(m_StarAmount, 0.3333333f) * 1000;
-            m_LoadingScreen = Instantiate(m_LoadingScreen, FindObjectOfType<Canvas>().transform);
-            Debug.Log("Start Loading...");
-            Init();
-            Destroy(m_LoadingScreen);
-            Debug.Log("Loading finished...");
+            
         }
 
         private void Init()
@@ -104,10 +101,21 @@ namespace Galaxy
             m_GalaxySystem.ShutDown();
             SceneManager.LoadScene("Start");
         }
-
         public void Update()
         {
-            m_GalaxySystem.AddTime(Time.fixedDeltaTime * m_TimeSpeed);
+            if (m_Running)
+            {
+                m_GalaxySystem.AddTime(Time.fixedDeltaTime * m_TimeSpeed);
+            }
+            else
+            {
+                Debug.Log("Start Loading...");
+                Init();
+                Destroy(m_LoadingScreen);
+                Debug.Log("Loading finished...");
+                m_Running = true;
+            }
+
         }
 
         #region Methods

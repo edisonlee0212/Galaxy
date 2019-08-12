@@ -55,7 +55,7 @@ namespace Galaxy
         {
             if(m_Entity != Entity.Null)
             {
-                float4 pos = m_EntityManager.GetComponentData<LocalToWorld>(m_Entity).Value.c3;
+                float4 pos = m_EntityManager.GetComponentData<CustomLocalToWorld>(m_Entity).Value.c3;
                 var position = m_Camera.WorldToScreenPoint(new Vector3(pos.x, pos.y, pos.z));
                 if (position.x < 0 || position.y < 0) position = Vector3.one * 20000;
                 position.z = 0;

@@ -85,39 +85,49 @@ namespace Galaxy
 
         #region Jobs
         [BurstCompile]
-        struct StarPositionsJob : IJobForEach<StarProperties, Translation, Position, OrbitProperties, Scale, CustomColor>
+        struct StarPositionsJob : IJobForEach<StarProperties, Position, CustomLocalToWorld, OrbitProperties, Scale, CustomColor>
         {
             [ReadOnly] public float currentTime;
             [ReadOnly] public double3 floatingOrigin;
             [ReadOnly] public GalaxyPatternProperties properties;
-            public void Execute([ReadOnly] ref StarProperties c0, [WriteOnly] ref Translation c1, [WriteOnly] ref Position c2, [ReadOnly] ref OrbitProperties c3, [WriteOnly] ref Scale c4, [WriteOnly] ref CustomColor c5)
+            public void Execute([ReadOnly] ref StarProperties c0, [WriteOnly] ref Position c1, [WriteOnly] ref CustomLocalToWorld c2, [ReadOnly] ref OrbitProperties c3, [WriteOnly] ref Scale c4, [WriteOnly] ref CustomColor c5)
             {
-                c2.Value = c3.GetPoint((currentTime + c0.StartingTime));
-                c1.Value = (float3)(c2.Value - floatingOrigin);
-                if (c1.Value.x < 0.01 && c1.Value.x > -0.01 && c1.Value.y < 0.01 && c1.Value.y > -0.01 && c1.Value.z < 0.01 && c1.Value.z > -0.01)
-                {
-                    c1.Value = float3.zero;
-                }
-                float distance = Vector3.Distance(Vector3.zero, c1.Value);
-                Vector4 color = properties.GetColor((float)c0.Proportion);
+                double3 position = c3.GetPoint((currentTime + c0.StartingTime));
+                c1.Value = position;
+                position -= floatingOrigin;
+                float distance = Vector3.Distance(Vector3.zero, (float3)position);
+                Vector4 color = properties.GetColor(c0.Proportion);
                 color = color.normalized * 2;
                 int factor = 340;
+                StarProperties starProperties = c0;
                 if (distance < factor)
                 {
-                    c5.Color = (c0.Color + (Vector4)Color.white).normalized * (2f + (factor - distance) / factor / 4);
+                    c5.Color = (starProperties.Color + (Vector4)Color.white).normalized * (2f + (factor - distance) / factor / 4);
                     c4.Value = c0.Mass;
                 }
                 else if (distance > 15000)
                 {
-                    c5.Color = ((c0.Color * 40 + color * (distance - 40)) / distance).normalized * 1.5f;
+                    c5.Color = ((starProperties.Color * 40 + color * (distance - 40)) / distance).normalized * 1.5f;
                     distance = 15000;
                     c4.Value = c0.Mass * distance / factor;
                 }
                 else
                 {
-                    c5.Color = ((c0.Color * 20 + (Vector4)Color.white * 20 + color * (distance - 40)) / distance).normalized * 1.8f;
-                    c4.Value = c0.Mass * distance / factor;
+                    c5.Color = ((starProperties.Color * 20 + (Vector4)Color.white * 20 + color * (distance - 40)) / distance).normalized * 1.8f;
+                    c4.Value = starProperties.Mass * distance / factor;
                 }
+                float4x4 ltw = new float4x4();
+                ltw.c0.x = c4.Value;
+                ltw.c1.y = c4.Value;
+                ltw.c2.z = c4.Value;
+                if (position.x < 0.01 && position.x > -0.01 && position.y < 0.01 && position.y > -0.01 && position.z < 0.01 && position.z > -0.01)
+                {
+                    ltw.c3 = new float4(0, 0, 0, 1);
+                }
+                else {
+                    ltw.c3 = new float4((float3)position, 1);
+                }
+                c2.Value = ltw;
             }
 
         }
@@ -257,7 +267,7 @@ namespace Galaxy
 
         #region Jobs
         [BurstCompile]
-        struct StarSelectionJob : IJobForEachWithEntity<Translation, Scale, StarProperties, LocalToWorld>
+        struct StarSelectionJob : IJobForEachWithEntity<Scale, StarProperties, CustomLocalToWorld>
         {
             [ReadOnly] public Vector3 Start;
             [ReadOnly] public Vector3 End;
@@ -269,30 +279,31 @@ namespace Galaxy
 
             [WriteOnly] public NativeQueue<Matrix4x4>.Concurrent CircledResultMatrices;
             [WriteOnly] public NativeQueue<Color>.Concurrent CircledResultColors;
-            public void Execute([ReadOnly] Entity entity, [ReadOnly] int index, [ReadOnly] ref Translation c0, [ReadOnly] ref Scale c1, [ReadOnly] ref StarProperties c2, [WriteOnly] ref LocalToWorld c3)
+            public void Execute([ReadOnly] Entity entity, [ReadOnly] int index, [ReadOnly] ref Scale c1, [ReadOnly] ref StarProperties c2, [ReadOnly] ref CustomLocalToWorld c3)
             {
                 float d;
-                if (Vector3.Distance(c0.Value, Start) <= RayCastDistance && Vector3.Angle(End - Start, (Vector3)c0.Value - Start) < 80)
+                float scale = c1.Value;
+                float3 position = c3.Position;
+                if (Vector3.Distance(position, Start) <= RayCastDistance && Vector3.Angle(End - Start, position - (float3)Start) < 80)
                 {
-                    d = Vector3.Dot(((Vector3)c0.Value - Start), (End - Start)) / RayCastDistance;
-                    float ap = Vector3.Distance(c0.Value, Start);
-                    if (ap * ap - d * d < c1.Value * c1.Value * 1.5f)
+                    d = Vector3.Dot((position - (float3)Start), (End - Start)) / RayCastDistance;
+                    float ap = Vector3.Distance(position, (float3)Start);
+                    if (ap * ap - d * d < scale * scale * 1.5f)
                     {
                         RayCastResultEntities.Enqueue(entity);
                         RayCastDistances.Enqueue(ap);
                     }
                 }
-                d = Vector3.Distance(Vector3.zero, c0.Value);
+                d = Vector3.Distance(Vector3.zero, position);
                 //Collect information for beacon.
                 if (d < 150)
                 {
-                    Vector2 b = new Vector2(c0.Value.x, c0.Value.z);
+                    Vector2 b = new Vector2(position.x, position.z);
                     //Here we try to calculate the LocalToWorld for the beacons.
-                    float3 position = c0.Value;
                     position.y = position.y / 2;
                     float length = Mathf.Abs(position.y);
                     //If beacon is too short to display we return. 
-                    if (length < c1.Value) return;
+                    if (length < scale) return;
                     float4x4 matrix = new float4x4();
                     matrix.c0.x = Mathf.Clamp(10.0f / d, 0.01f, 0.3f);
                     matrix.c1.y = length;
@@ -360,9 +371,6 @@ namespace Galaxy
                 }
                 m_BeaconRenderSystem.BeaconAmount = index;
 
-
-
-
                 m_MouseSelectionResultEntity = Entity.Null;
                 float min = MaxRayCastDistance;
                 while (m_Distances.Count > 0)
@@ -407,7 +415,7 @@ namespace Galaxy
                 }
                 #endregion
             }
-            else
+            else if(m_InTransition)
             {
                 m_Timer -= Time.deltaTime;
                 if (m_Timer < 0)
@@ -429,7 +437,8 @@ namespace Galaxy
         {
             m_BeaconRenderSystem.BeaconAmount = 0;
             m_InTransition = true;
-            m_TransitionTime = Mathf.Pow(Vector3.Distance(Vector3.zero, EntityManager.GetComponentData<LocalToWorld>(m_SelectedEntity).Position), 0.25f) / 8;
+            m_TransitionTime = Mathf.Pow(Vector3.Distance(Vector3.zero, EntityManager.GetComponentData<CustomLocalToWorld>(m_SelectedEntity).Position), 0.25f) / 8;
+            if (m_TransitionTime < 0.5f) m_TransitionTime = 0.5f;
             m_Timer = m_TransitionTime;
             m_PreviousPosition = StarTransformSimulationSystem.FloatingOrigin;
             m_CameraControl.StartTransition(m_TransitionTime, ViewType);
@@ -467,7 +476,6 @@ namespace Galaxy
 
         public void Init()
         {
-
             Enabled = true;
         }
 
@@ -498,7 +506,7 @@ namespace Galaxy
         #region Attributes
         private EndSimulationEntityCommandBufferSystem m_CommandBufferSystem;
         private EntityQuery m_InstanceQuery;
-        private NativeArray<LocalToWorld> m_LocalToWorlds;
+        private NativeArray<CustomLocalToWorld> m_LocalToWorlds;
         private NativeArray<CustomColor> m_CustomColors;
         private Matrix4x4[] m_Matrices;
         private float4x4[] m_IndirectMatrices;
@@ -544,8 +552,8 @@ namespace Galaxy
             if (m_LocalToWorldBuffer != null) m_LocalToWorldBuffer.Release();
             if (m_EmissionColorBuffer != null) m_EmissionColorBuffer.Release();
             if (m_ArgsBuffer != null) m_ArgsBuffer.Release();
-            m_InstancedIndirect = false;
-            m_InstanceQuery = EntityManager.CreateEntityQuery(typeof(LocalToWorld), typeof(StarProperties), typeof(CustomColor));
+            m_InstancedIndirect = true;
+            m_InstanceQuery = EntityManager.CreateEntityQuery(typeof(CustomLocalToWorld), typeof(StarProperties), typeof(CustomColor));
             //For .Graphics.DrawMeshInstancedIndirect();
             args = new uint[5] { m_StarMesh.GetIndexCount(0), (uint)m_StarAmount, 0, 0, 0 };
             m_ArgsBuffer = new ComputeBuffer(1, args.Length * sizeof(uint), ComputeBufferType.IndirectArguments);
@@ -577,12 +585,12 @@ namespace Galaxy
         #endregion
 
         #region Methods
-        public static unsafe void ToArray(NativeSlice<LocalToWorld> transforms, int count, Matrix4x4[] outMatrices, int offset)
+        public static unsafe void ToArray(NativeSlice<CustomLocalToWorld> transforms, int count, Matrix4x4[] outMatrices, int offset)
         {
-            Assert.AreEqual(sizeof(Matrix4x4), sizeof(LocalToWorld));
+            Assert.AreEqual(sizeof(Matrix4x4), sizeof(CustomLocalToWorld));
             fixed (Matrix4x4* resultMatrices = outMatrices)
             {
-                LocalToWorld* sourceMatrices = (LocalToWorld*)transforms.GetUnsafeReadOnlyPtr();
+                CustomLocalToWorld* sourceMatrices = (CustomLocalToWorld*)transforms.GetUnsafeReadOnlyPtr();
                 UnsafeUtility.MemCpy(resultMatrices + offset, sourceMatrices, UnsafeUtility.SizeOf<Matrix4x4>() * count);
             }
         }
@@ -607,45 +615,24 @@ namespace Galaxy
             }
         }
 
-        private static unsafe void ToArray(NativeArray<LocalToWorld> transforms, int count, float4x4[] outMatrices, int offset)
+        private static unsafe void ToArray(NativeArray<CustomLocalToWorld> transforms, int count, float4x4[] outMatrices, int offset)
         {
-            Assert.AreEqual(sizeof(float4x4), sizeof(LocalToWorld));
+            Assert.AreEqual(sizeof(float4x4), sizeof(CustomLocalToWorld));
             fixed (float4x4* resultMatrices = outMatrices)
             {
-                LocalToWorld* sourceMatrices = (LocalToWorld*)transforms.GetUnsafeReadOnlyPtr();
+                CustomLocalToWorld* sourceMatrices = (CustomLocalToWorld*)transforms.GetUnsafeReadOnlyPtr();
                 UnsafeUtility.MemCpy(resultMatrices + offset, sourceMatrices, UnsafeUtility.SizeOf<float4x4>() * count);
             }
         }
         #endregion
 
         #region Jobs
-        [BurstCompile]
-        private struct ExtractionDataJob : IJobForEach<LocalToWorld, StarProperties, CustomColor>
-        {
-            [NativeDisableContainerSafetyRestriction]
-            [WriteOnly] public NativeArray<LocalToWorld> localToWorlds;
-            [NativeDisableContainerSafetyRestriction]
-            [WriteOnly] public NativeArray<CustomColor> customColors;
-            public void Execute([ReadOnly] ref LocalToWorld c0, [ReadOnly] ref StarProperties c1, [ReadOnly] ref CustomColor c2)
-            {
-                localToWorlds[c1.Index] = c0;
-                customColors[c1.Index] = c2;
-            }
-        }
+
         #endregion
 
         protected override JobHandle OnUpdate(JobHandle inputDeps)
         {
-            /*m_LocalToWorlds = new NativeArray<LocalToWorld>(m_StarAmount, Allocator.TempJob);
-            m_CustomColors = new NativeArray<CustomColor>(m_StarAmount, Allocator.TempJob);
-
-            inputDeps = new ExtractionDataJob
-            {
-                localToWorlds = m_LocalToWorlds,
-                customColors = m_CustomColors
-            }.Schedule(this, inputDeps);
-            inputDeps.Complete();*/
-            m_LocalToWorlds = m_InstanceQuery.ToComponentDataArray<LocalToWorld>(Allocator.TempJob, out inputDeps);
+            m_LocalToWorlds = m_InstanceQuery.ToComponentDataArray<CustomLocalToWorld>(Allocator.TempJob, out inputDeps);
             inputDeps.Complete();
             m_CustomColors = m_InstanceQuery.ToComponentDataArray<CustomColor>(Allocator.TempJob, out inputDeps);
             inputDeps.Complete();
@@ -658,7 +645,7 @@ namespace Galaxy
                 m_EmissionColorBuffer.SetData(m_IndirectColors);
                 m_StarIndirectMaterial.SetBuffer("localToWorldBuffer", m_LocalToWorldBuffer);
                 m_StarIndirectMaterial.SetBuffer("emissionColorBuffer", m_EmissionColorBuffer);
-                Graphics.DrawMeshInstancedIndirect(m_StarMesh, 0, m_StarIndirectMaterial, new Bounds(Vector3.zero, Vector3.one * 30000), m_ArgsBuffer, 0, null, 0, false, 0);
+                Graphics.DrawMeshInstancedIndirect(m_StarMesh, 0, m_StarIndirectMaterial, new Bounds(Vector3.zero, Vector3.one * 60000), m_ArgsBuffer, 0, null, 0, false, 0);
             }
             else
             {
@@ -668,7 +655,7 @@ namespace Galaxy
                 {
                     if (StarAmount - offset > 1023)
                     {
-                        NativeSlice<LocalToWorld> slice = m_LocalToWorlds.Slice(offset, 1023);
+                        NativeSlice<CustomLocalToWorld> slice = m_LocalToWorlds.Slice(offset, 1023);
                         NativeSlice<CustomColor> colorSlice = m_CustomColors.Slice(offset, 1023);
 
                         ToArray(slice, 1023, m_Matrices, 0);
@@ -683,7 +670,7 @@ namespace Galaxy
                     else
                     {
                         int amount = StarAmount - offset;
-                        NativeSlice<LocalToWorld> slice = m_LocalToWorlds.Slice(offset, amount);
+                        NativeSlice<CustomLocalToWorld> slice = m_LocalToWorlds.Slice(offset, amount);
                         NativeSlice<CustomColor> colorSlice = m_CustomColors.Slice(offset, amount);
 
                         Matrix4x4[] matrices = new Matrix4x4[amount];
@@ -743,33 +730,15 @@ namespace Galaxy
             Random.seed = Game.Seed;
             EntityArchetype starEntityArchetype = EntityManager.CreateArchetype(
                 typeof(CustomCullingStat),
-                typeof(Translation),
                 typeof(Position),
                 typeof(Rotation),
                 typeof(StarProperties),
                 typeof(CustomColor),
                 typeof(OrbitProperties),
                 typeof(Scale),
-                typeof(LocalToWorld)
+                typeof(CustomLocalToWorld)
                 );
-            EntityArchetype planetEntityArchetype = EntityManager.CreateArchetype(
-                typeof(CustomCullingStat),
-                typeof(Translation),
-                typeof(Rotation),
-                typeof(Scale),
-                typeof(LocalToWorld),
-                typeof(RenderMesh),
-                typeof(OrbitProperties)
-                );
-            EntityArchetype planetAtmosphereArchetype = EntityManager.CreateArchetype(
-                typeof(Translation),
-                typeof(Rotation),
-                typeof(Scale),
-                typeof(LocalToWorld),
-                typeof(LocalToParent),
-                typeof(RenderMesh),
-                typeof(Parent)
-                );
+
             for (ushort i = 0; i < m_StarAmount; i++)
             {
                 Entity instance = EntityManager.CreateEntity(starEntityArchetype);
@@ -802,8 +771,7 @@ namespace Galaxy
         public ushort Reference;
         public byte PlanetAmount;
         public float Proportion;
-        public fixed int PlanetReferences[10];
-        public EnergyData Energy;
+        public int FirstPlanetReference;
     }
 
     public struct PlanetData
@@ -813,18 +781,18 @@ namespace Galaxy
         public ushort StarReference;
         public float Seed;
         public float DistanceToStar;
-        public ResourceData Resource;
     }
 
 
-    public struct ResourceData
+    public unsafe struct ResourceData
     {
-
+        public int PlanetReference;
+        public fixed uint ResourceList[Game.ElementSize];
     }
 
     public struct EnergyData
     {
-
+        public ushort StarReference;
     }
 
     [DisableAutoCreation]
@@ -840,10 +808,12 @@ namespace Galaxy
         private int m_PlanetAmount;
         private static NativeArray<StarData> m_StarDatas;
         private static NativeArray<PlanetData> m_PlanetDatas;
+        private static NativeArray<ResourceData> m_ResourceDatas;
         public int StarAmount { get => m_StarAmount; set => m_StarAmount = value; }
         public int PlanetAmount { get => m_PlanetAmount; set => m_PlanetAmount = value; }
         public static NativeArray<StarData> StarDatas { get => m_StarDatas; }
         public static NativeArray<PlanetData> PlanetDatas { get => m_PlanetDatas;}
+        public static NativeArray<ResourceData> ResourceDatas { get => m_ResourceDatas; set => m_ResourceDatas = value; }
         #endregion
 
         #region Managers
@@ -858,6 +828,7 @@ namespace Galaxy
         {
             if (StarDatas.IsCreated) StarDatas.Dispose();
             if (PlanetDatas.IsCreated) PlanetDatas.Dispose();
+            if (ResourceDatas.IsCreated) ResourceDatas.Dispose();
             m_StarDatas = new NativeArray<StarData>(m_StarAmount, Allocator.Persistent);
             
             Update();
@@ -867,6 +838,7 @@ namespace Galaxy
         {
             if (StarDatas.IsCreated) StarDatas.Dispose();
             if (PlanetDatas.IsCreated) PlanetDatas.Dispose();
+            if (ResourceDatas.IsCreated) ResourceDatas.Dispose();
             if (m_InstanceQuery != null) m_InstanceQuery.Dispose();
         }
         #endregion
@@ -884,9 +856,7 @@ namespace Galaxy
             {
                 StarData starData = default;
                 starData.Reference = starsProperties[index].Index;
-                
                 starData.Proportion = starsProperties[index].Proportion;
-                starData.Energy = default;
                 starDatas[index] = starData;
             }
         }
@@ -904,10 +874,23 @@ namespace Galaxy
                     //TODO: Calculate distance to star.
                     planetData.DistanceToStar = 6 + 2 * i;
                     planetData.Index = (byte)i;
-                    planetData.Resource = default;
                     planetData.StarReference = (ushort)index;
                     planetDatas.Enqueue(planetData);
                 }
+            }
+        }
+
+        public unsafe struct ResourceDataGenerator : IJobParallelFor
+        {
+            [ReadOnly] public NativeArray<PlanetData> planetDatas;
+            [NativeDisableContainerSafetyRestriction]
+            [WriteOnly] public NativeArray<ResourceData> resourceDatas;
+            public void Execute(int index)
+            {
+                ResourceData resourceData = default;
+                resourceData.ResourceList[0] = 100;
+                //TODO: Calculate resource list;
+                resourceDatas[index] = resourceData;
             }
         }
 
@@ -925,6 +908,8 @@ namespace Galaxy
             inputDeps.Complete();
             starProperties.Dispose();
             m_PlanetAmount = 0;
+
+
             for(int i = 0; i < m_StarAmount; i++)
             {
                 var starData = m_StarDatas[i];
@@ -937,27 +922,38 @@ namespace Galaxy
 
             Debug.Log("Total Star Amount: " + m_StarAmount + "\nTotal Planet Amount: " + m_PlanetAmount + ". Average planet amount: " + (float)m_PlanetAmount / m_StarAmount);
 
-            NativeQueue<PlanetData> planetDataQueue = new NativeQueue<PlanetData>(Allocator.TempJob);
-
-            inputDeps = new PlanetDataGenerator
-            {
-                starDatas = m_StarDatas,
-                planetDatas = planetDataQueue.ToConcurrent()
-            }.Schedule(m_StarAmount, 100, inputDeps);
-            inputDeps.Complete();
-
             m_PlanetDatas = new NativeArray<PlanetData>(m_PlanetAmount, Allocator.Persistent);
-            for(int i = 0; i < m_PlanetAmount; i++)
+
+            int index = 0;
+            for(int i = 0; i < m_StarAmount; i++)
             {
-                var planetData = planetDataQueue.Dequeue();
-                planetData.Reference = i;
-                planetData.Seed = Random.Next();
-                m_PlanetDatas[i] = planetData;
-                var starData = m_StarDatas[planetData.StarReference];
-                starData.PlanetReferences[planetData.Index] = planetData.Reference;
-                m_StarDatas[planetData.StarReference] = starData;
+                StarData starData = m_StarDatas[i];
+                int planetAmount = starData.PlanetAmount;
+                for(int j = 0; j < planetAmount; j++)
+                {
+                    PlanetData planetData = default;
+                    planetData.DistanceToStar = 6 + 2 * j;
+                    planetData.Index = (byte)j;
+                    planetData.StarReference = (ushort)i;
+                    planetData.Reference = index;
+                    planetData.Seed = Random.Next();
+                    m_PlanetDatas[index] = planetData;
+                    if(j == 0)
+                    {
+                        starData.FirstPlanetReference = index;
+                        m_StarDatas[i] = starData;
+                    }
+                    index++;
+                }
             }
-            planetDataQueue.Dispose();
+
+            m_ResourceDatas = new NativeArray<ResourceData>(m_PlanetAmount, Allocator.Persistent);
+            inputDeps = new ResourceDataGenerator
+            {
+                resourceDatas = m_ResourceDatas,
+                planetDatas = m_PlanetDatas
+            }.Schedule(m_StarAmount, 1000, inputDeps);
+            inputDeps.Complete();
 
             return inputDeps;
         }

@@ -99,6 +99,7 @@ public class CameraControl : MonoBehaviour
 
     public void StartTransition(float transitionTime, ViewType viewType)
     {
+        if (transitionTime < 0.5f) transitionTime = 0.5f;
         m_ViewType = viewType;
         m_InTransition = true;
         m_TransitionTime = transitionTime;
@@ -122,6 +123,8 @@ public class CameraControl : MonoBehaviour
         else
         {
             m_TargetCameraPosition = new Vector3(0, 18f, -24f);
+            m_PreviousPosition = transform.localPosition;
+            m_TargetPosition = Vector3.zero;
             m_CenterDistance = 30f;
         }
         m_TargetCameraRotation = Quaternion.Euler(36.87f, 0, 0);
@@ -257,21 +260,23 @@ public class CameraControl : MonoBehaviour
             float t = Mathf.Pow((m_TransitionTime - m_Timer) / m_TransitionTime, 0.25f);
             m_Camera.transform.localPosition = Vector3.Lerp(m_PreviousCameraPosition, m_TargetCameraPosition, t);
             m_Camera.transform.localRotation = Quaternion.Lerp(m_PreviousCameraRotation, m_TargetCameraRotation, t);
-            t = (m_TransitionTime - m_Timer) / m_TransitionTime;
+            float nt = (m_TransitionTime - m_Timer) / m_TransitionTime;
             if (ViewType != ViewType.StarSystem)
             {
                 foreach (var orbit in m_PlanetarySystem.PlanetOrbits.Orbits)
                 {
-                    orbit.GetComponent<LineRenderer>().startColor = Color.white * -t / 2;
-                    orbit.GetComponent<LineRenderer>().endColor = Color.white * -t / 2;
+                    orbit.GetComponent<LineRenderer>().startColor = Color.white * ((1 - nt) / 4 + 0.3f);
+                    orbit.GetComponent<LineRenderer>().endColor = Color.white * ((1 - nt) / 4 + 0.3f);
+                    orbit.GetComponent<LineRenderer>().widthMultiplier = (1 - nt) * 0.05f + 0.0005f;
                 }
             }
             else
             {
                 foreach (var orbit in m_PlanetarySystem.PlanetOrbits.Orbits)
                 {
-                    orbit.GetComponent<LineRenderer>().startColor = Color.white * t / 2;
-                    orbit.GetComponent<LineRenderer>().endColor = Color.white * t / 2;
+                    orbit.GetComponent<LineRenderer>().startColor = Color.white * (nt / 4 + 0.3f);
+                    orbit.GetComponent<LineRenderer>().endColor = Color.white * (nt / 4 + 0.3f); 
+                    orbit.GetComponent<LineRenderer>().widthMultiplier = nt * 0.05f + 0.0005f;
                 }
             }
             Color c = Color.white;

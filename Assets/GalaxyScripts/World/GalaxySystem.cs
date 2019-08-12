@@ -39,6 +39,7 @@ namespace Galaxy
         
         private StarRenderSystem m_StarRenderSystem;
         private BeaconRenderSystem m_BeaconRenderSystem;
+        private EntityManager m_EntityManager;
         #endregion
 
         #region Public
@@ -66,6 +67,7 @@ namespace Galaxy
         #region Managers
         public void Init(GalaxyPatternProperties densityWaveProperties, int starAmount = 10000, int maxPlanetAmount = 20)
         {
+            m_EntityManager = World.Active.EntityManager;
             m_StarAmount = starAmount;
             m_MaxPlanetAmount = maxPlanetAmount;
             m_PlanetarySystem.MaxPlanetAmount = maxPlanetAmount;
@@ -121,6 +123,10 @@ namespace Galaxy
             m_SelectionSystem.Enabled = false;
             m_StarRenderSystem.Enabled = false;
             m_BeaconRenderSystem.Enabled = false;
+            m_StarMarker.enabled = false;
+            var entitiesArray = m_EntityManager.GetAllEntities(Allocator.Temp);
+            m_EntityManager.DestroyEntity(entitiesArray);
+            entitiesArray.Dispose();
         }
 
         #region Methods
@@ -139,6 +145,7 @@ namespace Galaxy
     {
         #region Attributes
         private PlanetarySystem m_PlanetarySystem;
+        private EntityManager m_EntityManager;
         #endregion
 
         #region Public
@@ -169,10 +176,8 @@ namespace Galaxy
             m_PlanetOrbits = planetOrbits;
             m_DensityWave = densityWave;
             m_StarTransformSimulationSystem = World.Active.GetOrCreateSystem<StarTransformSimulationSystem>();
-            EntityManager entityManager = World.Active.EntityManager;
-            var entitiesArray = entityManager.GetAllEntities(Allocator.Temp);
-            entityManager.DestroyEntity(entitiesArray);
-            entitiesArray.Dispose();
+            m_EntityManager = World.Active.EntityManager;
+            
             m_StarEngine = World.Active.GetOrCreateSystem<StarEngine>();
 
             m_StarTransformSimulationSystem.DiscreteSimulationTimeStep = 0.02f;
@@ -201,6 +206,7 @@ namespace Galaxy
         public void Destroy()
         {
             m_StarTransformSimulationSystem.Enabled = false;
+            
         }
 
         #endregion
@@ -210,13 +216,13 @@ namespace Galaxy
         public void SetTime(float time)
         {
             m_Time = time;
-            m_StarTransformSimulationSystem.SetTime(Time);
+            StarTransformSimulationSystem.SimulatedTime = m_Time;
         }
 
         public void AddTime(float time)
         {
             m_Time += time;
-            m_StarTransformSimulationSystem.SetTime(Time);
+            StarTransformSimulationSystem.SimulatedTime = m_Time;
         }
         #endregion
     }

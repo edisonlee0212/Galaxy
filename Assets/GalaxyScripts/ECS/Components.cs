@@ -10,11 +10,24 @@ using UnityEngine;
 namespace Galaxy
 {
     [Serializable]
+    public struct CustomLocalToWorld : IComponentData
+    {
+        public float4x4 Value;
+        public float3 Position
+        {
+            get
+            {
+                return new float3(Value.c3.x, Value.c3.y, Value.c3.z);
+            }
+        }
+    }
+
+
+    [Serializable]
     public struct BeaconProperties : IComponentData
     {
         public int Index;
     }
-
 
     [Serializable]
     public struct CustomRenderMesh : ISharedComponentData, IEquatable<CustomRenderMesh>
