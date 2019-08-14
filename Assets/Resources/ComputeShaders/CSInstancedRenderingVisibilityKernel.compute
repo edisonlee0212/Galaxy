@@ -1,0 +1,124 @@
+﻿
+#if SHADER_API_MOBILE && SHADER_API_METAL
+#define NUM_THREADS 512
+#elif SHADER_API_MOBILE && SHADER_API_GLES3
+#define NUM_THREADS 128
+#else
+#define NUM_THREADS 1024
+#endif
+
+#pragma kernel CSInstancedCameraCalculationKernel
+
+RWStructuredBuffer<float4x4> gpuiInstanceData;
+
+uniform float4x4 mvpMartix;
+uniform float3 boundsCenter;
+uniform float3 boundsExtents;
+uniform float maxDistance;
+uniform float3 camPos;
+uniform float frustumOffset;
+uniform float minCullingDistance;
+uniform uint bufferSize;
+
+uniform float halfAngle;
+
+AppendStructuredBuffer<float4x4> gpuiTransformationMatrix;
+
+
+uniform uint lodShift;
+
+
+bool IsCulled(in float4x4 objectTransformMatrix)
+{
+	bool isCulled = false;
+
+	// Calculate clip space matrix
+	float4x4 to_clip_space_mat = mul(mvpMartix, objectTransformMatrix);
+
+	float3 Min = boundsCenter - boundsExtents;
+	float3 Max = boundsCenter + boundsExtents;
+
+	// Transform all 8 corner points of the object bounding box to clip space
+	float4 BoundingBox[8];
+	BoundingBox[0] = mul(to_clip_space_mat, float4(Min.x, Max.y, Min.z, 1.0));
+	BoundingBox[1] = mul(to_clip_space_mat, float4(Min.x, Max.y, Max.z, 1.0));
+	BoundingBox[2] = mul(to_clip_space_mat, float4(Max.x, Max.y, Max.z, 1.0));
+	BoundingBox[3] = mul(to_clip_space_mat, float4(Max.x, Max.y, Min.z, 1.0));
+	BoundingBox[4] = mul(to_clip_space_mat, float4(Max.x, Min.y, Min.z, 1.0));
+	BoundingBox[5] = mul(to_clip_space_mat, float4(Max.x, Min.y, Max.z, 1.0));
+	BoundingBox[6] = mul(to_clip_space_mat, float4(Min.x, Min.y, Max.z, 1.0));
+	BoundingBox[7] = mul(to_clip_space_mat, float4(Min.x, Min.y, Min.z, 1.0));
+
+	// OBB Frustum Culling
+
+		// Test all 8 points with both positive and negative planes
+	for (int i = 0; i < 3; i++)
+	{
+		// cull if outside positive plane:
+		isCulled = isCulled ||
+			(BoundingBox[0][i] > BoundingBox[0].w + frustumOffset &&
+				BoundingBox[1][i] > BoundingBox[1].w + frustumOffset &&
+				BoundingBox[2][i] > BoundingBox[2].w + frustumOffset &&
+				BoundingBox[3][i] > BoundingBox[3].w + frustumOffset &&
+				BoundingBox[4][i] > BoundingBox[4].w + frustumOffset &&
+				BoundingBox[5][i] > BoundingBox[5].w + frustumOffset &&
+				BoundingBox[6][i] > BoundingBox[6].w + frustumOffset &&
+				BoundingBox[7][i] > BoundingBox[7].w + frustumOffset);
+
+		// cull if outside negative plane:
+		isCulled = isCulled ||
+			(BoundingBox[0][i] < -BoundingBox[0].w - frustumOffset &&
+				BoundingBox[1][i] < -BoundingBox[1].w - frustumOffset &&
+				BoundingBox[2][i] < -BoundingBox[2].w - frustumOffset &&
+				BoundingBox[3][i] < -BoundingBox[3].w - frustumOffset &&
+				BoundingBox[4][i] < -BoundingBox[4].w - frustumOffset &&
+				BoundingBox[5][i] < -BoundingBox[5].w - frustumOffset &&
+				BoundingBox[6][i] < -BoundingBox[6].w - frustumOffset &&
+				BoundingBox[7][i] < -BoundingBox[7].w - frustumOffset);
+	}
+
+	return isCulled;
+}
+
+
+bool IsAppending(uint3 id, out float dist)
+{
+	dist = 0; 
+
+	// Calculate buffer data and cull if instance exceeds buffer limit
+	if (id.x >= bufferSize)
+		return false;
+
+	float3 scale = float3(length(gpuiInstanceData[id.x]._11_12_13), length(gpuiInstanceData[id.x]._21_22_23), length(gpuiInstanceData[id.x]._31_32_33));
+
+	// Cull if scale is zero    
+	if (scale.x == 0 || scale.y == 0 || scale.z == 0)
+		return false;
+
+	// Test for distance culling 
+	dist = abs(distance(gpuiInstanceData[id.x]._14_24_34, camPos));
+	if (dist >= maxDistance)
+		return false;
+
+	// Test for frustum and/or occlusion culling.
+	if (dist >= minCullingDistance)
+		return !IsCulled(gpuiInstanceData[id.x]);
+	return true;
+}
+
+[numthreads(NUM_THREADS, 1, 1)]
+void CSInstancedCameraCalculationKernel(uint3 id : SV_DispatchThreadID)
+{
+	if (id.x >= bufferSize)
+		return;
+
+	float dist = 0;
+	
+	gpuiTransformationMatrix.Append(gpuiInstanceData[id.x]);
+
+	if (IsAppending(id, dist))
+	{
+		gpuiTransformationMatrix.Append(gpuiInstanceData[id.x]);
+	}
+}
+

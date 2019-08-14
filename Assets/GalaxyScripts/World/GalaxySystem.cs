@@ -22,9 +22,13 @@ namespace Galaxy
         [SerializeField]
         private Mesh m_StarMesh;
         [SerializeField]
+        private Mesh m_StarConnectionMesh;
+        [SerializeField]
         private Mesh m_PlanetMesh;
         [SerializeField]
         private Material m_StarMaterial;
+        [SerializeField]
+        private Material m_StarConnectionMaterial;
         [SerializeField]
         private Material m_StarIndirectMaterial;
         
@@ -65,8 +69,10 @@ namespace Galaxy
         #endregion
 
         #region Managers
-        public void Init(GalaxyPatternProperties densityWaveProperties, int starAmount = 10000, int maxPlanetAmount = 20)
+        public void Init(GalaxyPatternProperties densityWaveProperties, int starAmount = 10000, int maxPlanetAmount = 20, bool connectAllStars = false, bool culling = false)
         {
+            Debug.Log("Culling: " + culling);
+            GalaxyRenderSystem.InstancedIndirect = culling;
             m_EntityManager = World.Active.EntityManager;
             m_StarAmount = starAmount;
             m_MaxPlanetAmount = maxPlanetAmount;
@@ -109,6 +115,9 @@ namespace Galaxy
             GalaxyRenderSystem.StarMesh = m_StarMesh;
             GalaxyRenderSystem.StarMaterial = m_StarMaterial;
             GalaxyRenderSystem.StarIndirectMaterial = m_StarIndirectMaterial;
+            GalaxyRenderSystem.StarConnectionMaterial = m_StarConnectionMaterial;
+            GalaxyRenderSystem.StarConnectionMesh = m_StarConnectionMesh;
+            GalaxyRenderSystem.SequenceConnect = connectAllStars;
             BeaconRenderSystem.BeaconMaterial = m_BeaconMaterial;
             BeaconRenderSystem.BeaconMesh = m_BeaconMesh;
             m_StarRenderSystem.Init();

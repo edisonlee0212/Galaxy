@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
@@ -35,6 +36,10 @@ namespace Galaxy
         private GameObject m_LoadingScreen;
         [SerializeField]
         private int seed;
+        [SerializeField]
+        private Text m_FromIndex;
+        [SerializeField]
+        private Text m_ToIndex;
 
         private PlanetarySystem m_PlanetarySystem;
         private bool m_DisplayOrbits;
@@ -42,31 +47,40 @@ namespace Galaxy
         private GalaxyPattern m_DensityWave;
         private float m_TimeSpeed;
         private bool m_Running = false;
+        private bool m_Init = false;
         private int m_StarAmount;
+        private bool m_ConnectAllStars;
+        private bool m_Culling;
         #endregion
 
         private static int m_Seed;
+
         public const int ElementSize = 108;
         public static int Seed { get => m_Seed; set => m_Seed = value; }
 
         // Start is called before the first frame update
         void Start()
         {
+            m_Init = true;
             var go = GameObject.Find("SceneMsg");
             if (go != null)
             {
                 SceneMsg msg = go.GetComponent<SceneMsg>();
                 m_StarAmount = msg.StartAmount;
                 m_Seed = msg.Seed;
+                m_ConnectAllStars = msg.ConnectAllStars;
+                m_Culling = msg.Culling;
                 Destroy(go);
             }
             else
             {
                 m_StarAmount = 6000;
                 m_Seed = seed;
+                m_ConnectAllStars = false;
+                m_Culling = false;
             }
             m_DensityWaveProperties.DiskAB = Mathf.Pow(m_StarAmount, 0.3333333f) * 1000;
-            
+
         }
 
         private void Init()
@@ -81,7 +95,7 @@ namespace Galaxy
             m_GalaxySystem.CameraControl = m_CameraControl;
             m_GalaxySystem.StarMarker = m_StarMarker;
             m_GalaxySystem.PlanetarySystem = m_PlanetarySystem;
-            m_GalaxySystem.Init(m_DensityWaveProperties, m_StarAmount, 10);
+            m_GalaxySystem.Init(m_DensityWaveProperties, m_StarAmount, 10, m_ConnectAllStars, m_Culling);
             m_TimeSpeed = 0.001f;
             Debug.Assert(m_OrbitsAmount <= 100 && m_OrbitsAmount >= 10);
             m_OrbitObjects = new List<Orbit>();
@@ -107,18 +121,37 @@ namespace Galaxy
             {
                 m_GalaxySystem.AddTime(Time.fixedDeltaTime * m_TimeSpeed);
             }
-            else
+            else if (m_Init)
             {
                 Debug.Log("Start Loading...");
                 Init();
                 Destroy(m_LoadingScreen);
                 Debug.Log("Loading finished...");
                 m_Running = true;
+                m_Init = false;
             }
 
         }
 
         #region Methods
+        public void AddConnection()
+        {
+            int from = -1;
+            Debug.Log(m_FromIndex.text + "-" + m_ToIndex.text);
+            from = int.Parse(m_FromIndex.text);
+            int to = -1;
+            to = int.Parse(m_ToIndex.text);
+            Debug.Log(from + ">" + to);
+            if (from != to && from >= 0 && to >= 0 && from < m_StarAmount && to < m_StarAmount)
+            {
+                GalaxyRenderSystem.AddStarConnection(new StarConnection
+                {
+                    FromIndex = from,
+                    ToIndex = to
+                });
+            }
+        }
+
         /// <summary>
         /// To recalculate the orbit, and to resetsion every star.
         /// </summary>

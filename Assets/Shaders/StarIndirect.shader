@@ -25,15 +25,19 @@
 			float2 uv_MainTex;
 		};
 
+		struct StarInfo {
+			float4x4 localToWorld;
+			float4 emissionColor;
+		};
+
 		#ifdef UNITY_PROCEDURAL_INSTANCING_ENABLED
-			StructuredBuffer<float4x4> localToWorldBuffer;
-			StructuredBuffer<float4> emissionColorBuffer;
+			StructuredBuffer<StarInfo> starInfoBuffer;
 		#endif
 
 		void setup()
 		{
 			#ifdef UNITY_PROCEDURAL_INSTANCING_ENABLED
-				float4x4 data = localToWorldBuffer[unity_InstanceID];
+				float4x4 data = starInfoBuffer[unity_InstanceID].localToWorld;
 				unity_ObjectToWorld = data;
 			#endif
 		}
@@ -42,7 +46,7 @@
 		{
 			float4 color = 1.0f;
 			#ifdef UNITY_PROCEDURAL_INSTANCING_ENABLED
-				color = emissionColorBuffer[unity_InstanceID];
+				color = starInfoBuffer[unity_InstanceID].emissionColor;
 			#endif
 			o.Emission = color;
 		}

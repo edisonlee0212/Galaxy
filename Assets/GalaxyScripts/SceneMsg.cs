@@ -10,11 +10,17 @@ public class SceneMsg : MonoBehaviour
     Text m_InputAmount;
     [SerializeField]
     Text m_InputSeed;
+    
+    [SerializeField]
+    private Toggle m_ConnectAllStars;
+    [SerializeField]
+    private Toggle m_Culling;
     private int m_StartAmount;
     private int m_Seed;
-    public int StartAmount { get => m_StartAmount; set => m_StartAmount = value; }
-    public int Seed { get => m_Seed; set => m_Seed = value; }
-
+    public int StartAmount { get => m_StartAmount;}
+    public int Seed { get => m_Seed; }
+    public bool ConnectAllStars { get => m_ConnectAllStars.isOn; }
+    public bool Culling { get => m_Culling.isOn; }
     public void OnStart()
     {
         if(!int.TryParse(m_InputAmount.text, out m_StartAmount)){

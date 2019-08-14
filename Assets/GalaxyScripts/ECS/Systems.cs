@@ -37,7 +37,7 @@ namespace Galaxy
         #endregion
 
         #region Public
-        private static Camera m_MainCamera;
+        private static Camera m_Camera;
         private static GalaxyPattern m_DensityWave;
         private static bool m_CalculateOrbit;
         private static float m_SimulatedTime;
@@ -49,7 +49,7 @@ namespace Galaxy
         private static StarOrbitJob calculateStarOrbitJob;
         public static GalaxyPattern DensityWave { get => m_DensityWave; set => m_DensityWave = value; }
         public static bool CalculateOrbit { get => m_CalculateOrbit; set => m_CalculateOrbit = value; }
-        public static Camera MainCamera { get => m_MainCamera; set => m_MainCamera = value; }
+        public static Camera Camera { get => m_Camera; set => m_Camera = value; }
         public static float SimulatedTime { get => m_SimulatedTime; set => m_SimulatedTime = value; }
         public static bool ContinuousSimulation { get => m_ContinuousSimulation; set => m_ContinuousSimulation = value; }
         public static float DiscreteSimulationTimeStep { get => m_DiscreteSimulationTimeStep; set => m_DiscreteSimulationTimeStep = value; }
@@ -74,7 +74,7 @@ namespace Galaxy
         public void Init()
         {
             m_ScaleFactor = 1;
-            m_MainCamera = Camera.main;
+            m_Camera = Camera.main;
             FloatingOrigin = new double3(0, 0, 0);
             calculateStarPositionsJob = new StarPositionsJob { };
             calculateStarOrbitJob = new StarOrbitJob
@@ -102,6 +102,79 @@ namespace Galaxy
         #endregion
 
         #region Jobs
+
+        [BurstCompile]
+        struct StarPositionsForIndirectJob : IJobForEach<StarProperties, Position, CustomLocalToWorld, OrbitProperties, Scale, CustomColor>
+        {
+            [ReadOnly] public float currentTime;
+            [ReadOnly] public double3 floatingOrigin;
+            [ReadOnly] public float scaleFactor;
+            [ReadOnly] public GalaxyPatternProperties properties;
+            [WriteOnly] public NativeQueue<StarRenderInfo>.Concurrent starRenderInfos;
+
+            [ReadOnly] public float4 fpls1;
+            [ReadOnly] public float4 fpls2;
+            [ReadOnly] public float4 fpls3;
+            [ReadOnly] public float4 fpls4;
+            [ReadOnly] public float4 fpls5;
+            [ReadOnly] public float4 fpls6;
+            public void Execute([ReadOnly] ref StarProperties c0, [WriteOnly] ref Position c1, [WriteOnly] ref CustomLocalToWorld c2, [ReadOnly] ref OrbitProperties c3, [WriteOnly] ref Scale c4, [WriteOnly] ref CustomColor c5)
+            {
+                double3 position = c3.GetPoint((currentTime + c0.StartingTime));
+                c1.Value = position;
+                position -= floatingOrigin;
+                position /= scaleFactor;
+                float distance = Vector3.Distance(Vector3.zero, (float3)position);
+                Vector4 color = properties.GetColor(c0.Proportion);
+                color = color.normalized * 2;
+                int factor = 340;
+                StarProperties starProperties = c0;
+                if (distance < factor)
+                {
+                    color = (starProperties.Color + (Vector4)Color.white).normalized * (2f + (factor - distance) / factor / 4);
+                    c4.Value = c0.Mass * scaleFactor;
+                }
+                else if (distance > 15000)
+                {
+                    color = ((starProperties.Color * 40 + color * (distance - 40)) / distance).normalized * 1.5f;
+                    distance = 15000;
+                    c4.Value = c0.Mass * distance / factor * scaleFactor;
+                }
+                else
+                {
+                    color = ((starProperties.Color * 20 + (Vector4)Color.white * 20 + color * (distance - 40)) / distance).normalized * 1.8f;
+                    c4.Value = starProperties.Mass * distance / factor * scaleFactor;
+                }
+                color = color / (1 + (scaleFactor - 1) / 3);
+                float4x4 ltw = new float4x4();
+                ltw.c0.x = c4.Value;
+                ltw.c1.y = c4.Value;
+                ltw.c2.z = c4.Value;
+                if (position.x < 0.01 && position.x > -0.01 && position.y < 0.01 && position.y > -0.01 && position.z < 0.01 && position.z > -0.01)
+                {
+                    ltw.c3 = new float4(0, 0, 0, 1);
+                }
+                else
+                {
+                    ltw.c3 = new float4((float3)position, 1);
+                }
+                c5.Color = color;
+                c2.Value = ltw;
+                bool res = true;
+                if (fpls1.x * position.x + fpls1.y * position.y + fpls1.z * position.z + fpls1.w <= c4.Value) res = false;
+                if (fpls2.x * position.x + fpls2.y * position.y + fpls2.z * position.z + fpls2.w <= c4.Value) res = false;
+                if (fpls3.x * position.x + fpls3.y * position.y + fpls3.z * position.z + fpls3.w <= c4.Value) res = false;
+                if (fpls4.x * position.x + fpls4.y * position.y + fpls4.z * position.z + fpls4.w <= c4.Value) res = false;
+                if (fpls5.x * position.x + fpls5.y * position.y + fpls5.z * position.z + fpls5.w <= c4.Value) res = false;
+                if (fpls6.x * position.x + fpls6.y * position.y + fpls6.z * position.z + fpls6.w <= c4.Value) res = false;
+                if (res)starRenderInfos.Enqueue(new StarRenderInfo
+                {
+                    LocalToWorld = ltw,
+                    EmissionColor = color
+                });
+            }
+
+        }
         [BurstCompile]
         struct StarPositionsJob : IJobForEach<StarProperties, Position, CustomLocalToWorld, OrbitProperties, Scale, CustomColor>
         {
@@ -114,6 +187,7 @@ namespace Galaxy
                 double3 position = c3.GetPoint((currentTime + c0.StartingTime));
                 c1.Value = position;
                 position -= floatingOrigin;
+                position /= scaleFactor;
                 float distance = Vector3.Distance(Vector3.zero, (float3)position);
                 Vector4 color = properties.GetColor(c0.Proportion);
                 color = color.normalized * 2;
@@ -121,21 +195,21 @@ namespace Galaxy
                 StarProperties starProperties = c0;
                 if (distance < factor)
                 {
-                    c5.Color = (starProperties.Color + (Vector4)Color.white).normalized * (2f + (factor - distance) / factor / 4);
+                    color = (starProperties.Color + (Vector4)Color.white).normalized * (2f + (factor - distance) / factor / 4);
                     c4.Value = c0.Mass * scaleFactor;
                 }
                 else if (distance > 15000)
                 {
-                    c5.Color = ((starProperties.Color * 40 + color * (distance - 40)) / distance).normalized * 1.5f;
+                    color = ((starProperties.Color * 40 + color * (distance - 40)) / distance).normalized * 1.5f ;
                     distance = 15000;
                     c4.Value = c0.Mass * distance / factor * scaleFactor;
                 }
                 else
                 {
-                    c5.Color = ((starProperties.Color * 20 + (Vector4)Color.white * 20 + color * (distance - 40)) / distance).normalized * 1.8f;
+                    color = ((starProperties.Color * 20 + (Vector4)Color.white * 20 + color * (distance - 40)) / distance).normalized * 1.8f ;
                     c4.Value = starProperties.Mass * distance / factor * scaleFactor;
                 }
-                
+                c5.Color = color / (1 + (scaleFactor - 1) / 3);
                 float4x4 ltw = new float4x4();
                 ltw.c0.x = c4.Value;
                 ltw.c1.y = c4.Value;
@@ -165,6 +239,55 @@ namespace Galaxy
         protected override JobHandle OnUpdate(JobHandle inputDeps)
         {
             m_DiscreteSimulationTimer += Time.deltaTime;
+            if (GalaxyRenderSystem.InstancedIndirect)
+            {
+                var planes = GeometryUtility.CalculateFrustumPlanes(m_Camera);
+                float4[] fpls = new float4[6];
+                for(int i = 0; i < 6; i++)
+                {
+                    fpls[i].x = planes[i].normal.x;
+                    fpls[i].y = planes[i].normal.y;
+                    fpls[i].z = planes[i].normal.z;
+                    fpls[i].w = planes[i].distance;
+                }
+
+                NativeQueue<StarRenderInfo> queue = new NativeQueue<StarRenderInfo>(Allocator.TempJob);
+                m_DiscreteSimulationTimer = 0;
+                if (m_FollowedStar != Entity.Null) FloatingOrigin = EntityManager.GetComponentData<OrbitProperties>(m_FollowedStar).GetPoint(SimulatedTime + EntityManager.GetComponentData<StarProperties>(m_FollowedStar).StartingTime);
+                var job = new StarPositionsForIndirectJob
+                {
+                    currentTime = SimulatedTime,
+                    floatingOrigin = FloatingOrigin,
+                    scaleFactor = m_ScaleFactor,
+                    properties = m_DensityWave.DensityWaveProperties,
+                    starRenderInfos = queue.ToConcurrent(),
+                    fpls1 = fpls[0],
+                    fpls2 = fpls[1],
+                    fpls3 = fpls[2],
+                    fpls4 = fpls[3],
+                    fpls5 = fpls[4],
+                    fpls6 = fpls[5]
+                };
+                
+                if (m_CalculateOrbit)
+                {
+                    CalculateOrbit = false;
+                    calculateStarOrbitJob.densityWaveProperties = DensityWave.DensityWaveProperties;
+                    inputDeps = calculateStarOrbitJob.Schedule(this, inputDeps);
+                    inputDeps.Complete();
+                }
+                inputDeps = job.Schedule(this, inputDeps);
+                inputDeps.Complete();
+                int count = queue.Count;
+                var list = GalaxyRenderSystem.m_StarInfoList;
+                for(int i = 0; i < count; i++)
+                {
+                    list.Add(queue.Dequeue());
+                }
+                queue.Dispose();
+                return inputDeps;
+            }
+
             if (m_ContinuousSimulation || m_DiscreteSimulationTimer > m_DiscreteSimulationTimeStep)
             {
                 m_DiscreteSimulationTimer = 0;
@@ -496,11 +619,13 @@ namespace Galaxy
         private static UnityEngine.Mesh m_BeaconMesh;
         private static UnityEngine.Material m_BeaconMaterial;
         private static int m_BeaconAmount;
+        private static bool m_DrawBeacon;
         public static int BeaconAmount { get => m_BeaconAmount; set => m_BeaconAmount = value; }
         public static UnityEngine.Mesh BeaconMesh { get => m_BeaconMesh; set => m_BeaconMesh = value; }
         public static UnityEngine.Material BeaconMaterial { get => m_BeaconMaterial; set => m_BeaconMaterial = value; }
         public static Matrix4x4[] Matrices { get => m_Matrices; set => m_Matrices = value; }
         public static Vector4[] Colors { get => m_Colors; set => m_Colors = value; }
+        public static bool DrawBeacon { get => m_DrawBeacon; set => m_DrawBeacon = value; }
         #endregion
 
         #region Managers
@@ -532,7 +657,8 @@ namespace Galaxy
 
         protected override JobHandle OnUpdate(JobHandle inputDeps)
         {
-            if (m_BeaconAmount != 0)
+            if (Input.GetKeyDown(KeyCode.B)) m_DrawBeacon = !m_DrawBeacon;
+            if (m_DrawBeacon && m_BeaconAmount != 0)
             {
                 m_MaterialPropertyBlock.SetVectorArray("_EmissionColor", Colors);
                 Graphics.DrawMeshInstanced(m_BeaconMesh, 0, m_BeaconMaterial,
@@ -549,259 +675,7 @@ namespace Galaxy
         public int ToIndex;
     }
 
-    [UpdateInGroup(typeof(PresentationSystemGroup))]
-    public class GalaxyRenderSystem : JobComponentSystem
-    {
-        #region Attributes
-        private static EndSimulationEntityCommandBufferSystem m_CommandBufferSystem;
-        private static EntityQuery m_InstanceQuery;
-        private static NativeArray<CustomLocalToWorld> m_StarLocalToWorlds;
-        private static NativeList<CustomLocalToWorld> m_StarConnectionsLocalToWorlds;
-        private static NativeArray<CustomColor> m_CustomColors;
-        private static Matrix4x4[] m_Matrices;
-        private static float4x4[] m_IndirectMatrices;
-        private static Vector4[] m_Colors;
-        private static float4[] m_IndirectColors;
-        private static MaterialPropertyBlock m_MaterialPropertyBlock;
-        private static ComputeBuffer m_LocalToWorldBuffer;
-        private static ComputeBuffer m_EmissionColorBuffer;
-        private static ComputeBuffer m_ArgsBuffer;
-        private uint[] args;
-        #endregion
-
-        #region Public
-        private static int m_StarAmount;
-        private static bool m_EnableCulling;
-        private static bool m_InstancedIndirect;
-        private static UnityEngine.Mesh m_StarMesh;
-        private static UnityEngine.Material m_StarMaterial;
-        private static UnityEngine.Material m_StarIndirectMaterial;
-        private static Light m_Light;
-        private static PlanetOrbits m_PlanetOrbits;
-        private static NativeList<StarConnection> m_StarConnections;
-        private static bool m_DrawConnections;
-        public static UnityEngine.Mesh StarMesh { get => m_StarMesh; set => m_StarMesh = value; }
-        public static UnityEngine.Material StarMaterial { get => m_StarMaterial; set => m_StarMaterial = value; }
-        public static bool EnableCulling { get => m_EnableCulling; set => m_EnableCulling = value; }
-        public static bool InstancedIndirect { get => m_InstancedIndirect; set => m_InstancedIndirect = value; }
-        public static Light Light { get => m_Light; set => m_Light = value; }
-        public static PlanetOrbits PlanetOrbits { get => m_PlanetOrbits; set => m_PlanetOrbits = value; }
-        public static int StarAmount { get => m_StarAmount; set => m_StarAmount = value; }
-        public static UnityEngine.Material StarIndirectMaterial { get => m_StarIndirectMaterial; set => m_StarIndirectMaterial = value; }
-        public static NativeList<StarConnection> StarConnections { get => m_StarConnections; set => m_StarConnections = value; }
-        public static bool DrawConnections { get => m_DrawConnections; set => m_DrawConnections = value; }
-        #endregion
-
-        #region Managers
-        protected override void OnCreateManager()
-        {
-            Enabled = false;
-        }
-
-        public void Init()
-        {
-            if (m_InstanceQuery != null) m_InstanceQuery.Dispose();
-            if (m_StarLocalToWorlds.IsCreated) m_StarLocalToWorlds.Dispose();
-            if (m_CustomColors.IsCreated) m_CustomColors.Dispose();
-            if (m_LocalToWorldBuffer != null) m_LocalToWorldBuffer.Release();
-            if (m_EmissionColorBuffer != null) m_EmissionColorBuffer.Release();
-            if (m_StarConnections.IsCreated) m_StarConnections.Dispose();
-            if (m_StarConnectionsLocalToWorlds.IsCreated) m_StarConnectionsLocalToWorlds.Dispose();
-            if (m_ArgsBuffer != null) m_ArgsBuffer.Release();
-            m_InstancedIndirect = true;
-            m_InstanceQuery = EntityManager.CreateEntityQuery(typeof(CustomLocalToWorld), typeof(StarProperties), typeof(CustomColor));
-
-            #region Star Connections
-            m_StarConnections = new NativeList<StarConnection>(Allocator.Persistent);
-            m_StarConnectionsLocalToWorlds = new NativeList<CustomLocalToWorld>(Allocator.Persistent);
-            #endregion
-
-            #region DrawMeshInstancedIndirect;
-            args = new uint[5] { m_StarMesh.GetIndexCount(0), (uint)m_StarAmount, 0, 0, 0 };
-            m_ArgsBuffer = new ComputeBuffer(1, args.Length * sizeof(uint), ComputeBufferType.IndirectArguments);
-            m_ArgsBuffer.SetData(args);
-            m_LocalToWorldBuffer = new ComputeBuffer(m_StarAmount, 64);
-            m_EmissionColorBuffer = new ComputeBuffer(m_StarAmount, 16);
-            m_IndirectMatrices = new float4x4[m_StarAmount];
-            m_IndirectColors = new float4[m_StarAmount];
-            #endregion
-
-            #region DrawMeshInstanced;
-            m_Matrices = new Matrix4x4[1023];
-            m_Colors = new Vector4[1023];
-            m_MaterialPropertyBlock = new MaterialPropertyBlock();
-            m_CommandBufferSystem = World.GetOrCreateSystem<EndSimulationEntityCommandBufferSystem>();
-            #endregion
-
-            //Start
-            Enabled = true;
-        }
-
-        public void ShutDown()
-        {
-            Enabled = false;
-            if (m_InstanceQuery != null) m_InstanceQuery.Dispose();
-            if (m_StarLocalToWorlds.IsCreated) m_StarLocalToWorlds.Dispose();
-            if (m_CustomColors.IsCreated) m_CustomColors.Dispose();
-            if (m_LocalToWorldBuffer != null) m_LocalToWorldBuffer.Release();
-            if (m_EmissionColorBuffer != null) m_EmissionColorBuffer.Release();
-            if (m_ArgsBuffer != null) m_ArgsBuffer.Release();
-            if (m_StarConnections.IsCreated) m_StarConnections.Dispose();
-            if (m_StarConnectionsLocalToWorlds.IsCreated) m_StarConnectionsLocalToWorlds.Dispose();
-
-        }
-
-        protected override void OnDestroyManager()
-        {
-            ShutDown();
-        }
-        #endregion
-
-        #region Methods
-
-        public void AddStarConnection(StarConnection starConnection)
-        {
-            m_StarConnections.Add(starConnection);
-            m_StarConnectionsLocalToWorlds.Add(default);
-        }
-
-        public static unsafe void ToArray(NativeSlice<CustomLocalToWorld> transforms, int count, Matrix4x4[] outMatrices, int offset)
-        {
-            Assert.AreEqual(sizeof(Matrix4x4), sizeof(CustomLocalToWorld));
-            fixed (Matrix4x4* resultMatrices = outMatrices)
-            {
-                CustomLocalToWorld* sourceMatrices = (CustomLocalToWorld*)transforms.GetUnsafeReadOnlyPtr();
-                UnsafeUtility.MemCpy(resultMatrices + offset, sourceMatrices, UnsafeUtility.SizeOf<Matrix4x4>() * count);
-            }
-        }
-
-        public static unsafe void ToArray(NativeSlice<CustomColor> colors, int count, Vector4[] outMatrices, int offset)
-        {
-            Assert.AreEqual(sizeof(Vector4), sizeof(CustomColor));
-            fixed (Vector4* resultMatrices = outMatrices)
-            {
-                CustomColor* sourceMatrices = (CustomColor*)colors.GetUnsafeReadOnlyPtr();
-                UnsafeUtility.MemCpy(resultMatrices + offset, sourceMatrices, UnsafeUtility.SizeOf<Vector4>() * count);
-            }
-        }
-
-        public static unsafe void ToArray(NativeArray<CustomColor> colors, int count, float4[] outMatrices, int offset)
-        {
-            Assert.AreEqual(sizeof(float4), sizeof(CustomColor));
-            fixed (float4* resultMatrices = outMatrices)
-            {
-                CustomColor* sourceMatrices = (CustomColor*)colors.GetUnsafeReadOnlyPtr();
-                UnsafeUtility.MemCpy(resultMatrices + offset, sourceMatrices, UnsafeUtility.SizeOf<float4>() * count);
-            }
-        }
-
-        private static unsafe void ToArray(NativeArray<CustomLocalToWorld> transforms, int count, float4x4[] outMatrices, int offset)
-        {
-            Assert.AreEqual(sizeof(float4x4), sizeof(CustomLocalToWorld));
-            fixed (float4x4* resultMatrices = outMatrices)
-            {
-                CustomLocalToWorld* sourceMatrices = (CustomLocalToWorld*)transforms.GetUnsafeReadOnlyPtr();
-                UnsafeUtility.MemCpy(resultMatrices + offset, sourceMatrices, UnsafeUtility.SizeOf<float4x4>() * count);
-            }
-        }
-        #endregion
-
-        #region Jobs
-        public struct StarConnectionsGenerator : IJobParallelFor
-        {
-            [ReadOnly] public NativeArray<CustomLocalToWorld> customLocalToWorlds;
-            [ReadOnly] public NativeArray<StarConnection> starConnections;
-            [WriteOnly] public NativeArray<CustomLocalToWorld> starConnectionsLocalToWorlds;
-            public void Execute(int index)
-            {
-                StarConnection connection = starConnections[index];
-                CustomLocalToWorld from = customLocalToWorlds[connection.FromIndex];
-                CustomLocalToWorld to = customLocalToWorlds[connection.ToIndex];
-                starConnectionsLocalToWorlds[index] = default;
-            }
-        }
-        #endregion
-
-        protected override JobHandle OnUpdate(JobHandle inputDeps)
-        {
-            m_StarLocalToWorlds = m_InstanceQuery.ToComponentDataArray<CustomLocalToWorld>(Allocator.TempJob, out inputDeps);
-            inputDeps.Complete();
-            m_CustomColors = m_InstanceQuery.ToComponentDataArray<CustomColor>(Allocator.TempJob, out inputDeps);
-            inputDeps.Complete();
-
-            #region Draw stars
-            if (m_InstancedIndirect)
-            {
-                ToArray(m_StarLocalToWorlds, m_StarAmount, m_IndirectMatrices, 0);
-                ToArray(m_CustomColors, m_StarAmount, m_IndirectColors, 0);
-                m_LocalToWorldBuffer.SetData(m_IndirectMatrices);
-                m_EmissionColorBuffer.SetData(m_IndirectColors);
-                m_StarIndirectMaterial.SetBuffer("localToWorldBuffer", m_LocalToWorldBuffer);
-                m_StarIndirectMaterial.SetBuffer("emissionColorBuffer", m_EmissionColorBuffer);
-                Graphics.DrawMeshInstancedIndirect(m_StarMesh, 0, m_StarIndirectMaterial, new Bounds(Vector3.zero, Vector3.one * 60000), m_ArgsBuffer, 0, null, 0, false, 0);
-            }
-            else
-            {
-                //Here we use the normal Graphics.DrawMeshInstanced. It only support 1023 instances for 1 drawcall.
-                int offset = 0;
-                while (offset < StarAmount)
-                {
-                    if (StarAmount - offset > 1023)
-                    {
-                        NativeSlice<CustomLocalToWorld> slice = m_StarLocalToWorlds.Slice(offset, 1023);
-                        NativeSlice<CustomColor> colorSlice = m_CustomColors.Slice(offset, 1023);
-
-                        ToArray(slice, 1023, m_Matrices, 0);
-                        ToArray(colorSlice, 1023, m_Colors, 0);
-
-                        m_MaterialPropertyBlock.SetVectorArray("_EmissionColor", m_Colors);
-                        Graphics.DrawMeshInstanced(m_StarMesh, 0, m_StarMaterial,
-                            m_Matrices,
-                            1023, m_MaterialPropertyBlock, 0, false, 0, null);
-                        offset += 1023;
-                    }
-                    else
-                    {
-                        int amount = StarAmount - offset;
-                        NativeSlice<CustomLocalToWorld> slice = m_StarLocalToWorlds.Slice(offset, amount);
-                        NativeSlice<CustomColor> colorSlice = m_CustomColors.Slice(offset, amount);
-
-                        Matrix4x4[] matrices = new Matrix4x4[amount];
-                        Vector4[] colors = new Vector4[amount];
-                        ToArray(slice, amount, matrices, 0);
-                        ToArray(colorSlice, amount, colors, 0);
-                        m_MaterialPropertyBlock.SetVectorArray("_EmissionColor", colors);
-
-                        Graphics.DrawMeshInstanced(m_StarMesh, 0, m_StarMaterial,
-                            matrices,
-                            amount, m_MaterialPropertyBlock, 0, false, 0, null);
-                        offset += StarAmount - offset;
-                    }
-                }
-            }
-            #endregion
-
-            #region Draw connections
-            if (m_DrawConnections)
-            {
-                inputDeps = new StarConnectionsGenerator
-                {
-                    customLocalToWorlds = m_StarLocalToWorlds,
-                    starConnections = m_StarConnections.AsDeferredJobArray(),
-                    starConnectionsLocalToWorlds = m_StarConnectionsLocalToWorlds.AsDeferredJobArray()
-                }.Schedule(m_StarConnections.Length, 1, inputDeps);
-                inputDeps.Complete();
-
-
-            }
-            #endregion
-
-            m_StarLocalToWorlds.Dispose();
-            m_CustomColors.Dispose();
-
-            return inputDeps;
-        }
-    }
+    
     #endregion
 
     #region Other Systems
@@ -961,6 +835,7 @@ namespace Galaxy
             [NativeDisableContainerSafetyRestriction]
             [WriteOnly] public NativeArray<StarData> starDatas;
             [ReadOnly] public NativeArray<StarProperties> starsProperties;
+            
             public void Execute(int index)
             {
                 StarData starData = default;
