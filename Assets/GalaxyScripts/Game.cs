@@ -50,7 +50,8 @@ namespace Galaxy
         private bool m_Init = false;
         private int m_StarAmount;
         private bool m_ConnectAllStars;
-        private bool m_Culling;
+        private bool m_IndirectRendering;
+        private bool m_EnableGPUCulling;
         #endregion
 
         private static int m_Seed;
@@ -69,7 +70,8 @@ namespace Galaxy
                 m_StarAmount = msg.StartAmount;
                 m_Seed = msg.Seed;
                 m_ConnectAllStars = msg.ConnectAllStars;
-                m_Culling = msg.Culling;
+                m_IndirectRendering = msg.EnableIndirect;
+                m_EnableGPUCulling = msg.EnableGPUFrustumCulling;
                 Destroy(go);
             }
             else
@@ -77,7 +79,7 @@ namespace Galaxy
                 m_StarAmount = 6000;
                 m_Seed = seed;
                 m_ConnectAllStars = false;
-                m_Culling = false;
+                m_IndirectRendering = false;
             }
             m_DensityWaveProperties.DiskAB = Mathf.Pow(m_StarAmount, 0.3333333f) * 1000;
 
@@ -95,7 +97,7 @@ namespace Galaxy
             m_GalaxySystem.CameraControl = m_CameraControl;
             m_GalaxySystem.StarMarker = m_StarMarker;
             m_GalaxySystem.PlanetarySystem = m_PlanetarySystem;
-            m_GalaxySystem.Init(m_DensityWaveProperties, m_StarAmount, 10, m_ConnectAllStars, m_Culling);
+            m_GalaxySystem.Init(m_DensityWaveProperties, m_StarAmount, 10, m_ConnectAllStars, m_IndirectRendering, m_EnableGPUCulling);
             m_TimeSpeed = 0.001f;
             Debug.Assert(m_OrbitsAmount <= 100 && m_OrbitsAmount >= 10);
             m_OrbitObjects = new List<Orbit>();

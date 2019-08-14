@@ -13,13 +13,15 @@ MonoBehaviour:
   m_Name: Galaxy System
   m_EditorClassIdentifier: Assembly-CSharp:Galaxy:GalaxySystem
   m_NebulasSystem: {fileID: 11400000, guid: da1268086b333d8418e93f82e7e2924a, type: 2}
-  m_StarMesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
+  m_StarMesh: {fileID: 4300002, guid: c26f7062dd385b44c82391b5199d5372, type: 3}
   m_StarConnectionMesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
-  m_PlanetMesh: {fileID: 4300004, guid: 6b6576c89e239564cbd67d8bfc8dd787, type: 3}
+  m_PlanetMesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
   m_StarMaterial: {fileID: 2100000, guid: 08773c71f7c042d4eb027c192265b17d, type: 2}
   m_StarConnectionMaterial: {fileID: 2100000, guid: 08773c71f7c042d4eb027c192265b17d,
     type: 2}
   m_StarIndirectMaterial: {fileID: 2100000, guid: a106c65558698014aac948099969b232,
+    type: 2}
+  m_StarIndirectGPUCullingMaterial: {fileID: 2100000, guid: 26d46f23de2ceae4ea8fbdd39cd9cc58,
     type: 2}
   m_Light: {fileID: 4496016142793240934, guid: c5c0489c1deaf924ea5c6a2f22691245, type: 3}
   m_PlanetOrbits: {fileID: 5298659160241683731, guid: 321cda228d49c47408b807296cb89538,

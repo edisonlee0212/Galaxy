@@ -27,26 +27,29 @@ namespace Galaxy
         #endregion Stride Sizes
 
         public static readonly string[] VISIBILITY_COMPUTE_KERNELS = new string[] {
-            "CSInstancedCameraCalculationKernel" };
-        public static readonly string VISIBILITY_COMPUTE_RESOURCE_PATH = "ComputeShaders/CSInstancedRenderingVisibilityKernel";
-
+            "OBBFrustumCullingKernel",
+            "SphereFrustumCullingKernel"};
+        public static readonly string OBB_FRUSTUM_CULLING_KERNEL_RESOURCE_PATH = "ComputeShaders/OBBFrustumCullingKernel";
+        public static readonly string SPHERE_FRUSTUM_CULLING_KERNEL_RESOURCE_PATH = "ComputeShaders/SphereFrustumCullingKernel";
         public static readonly float VISIBILITY_SHADER_THREAD_COUNT = 1024;
-        public static class VisibilityKernelPoperties
+        public static readonly int TRANSFORMATION_MATRIX_APPEND_BUFFERS = Shader.PropertyToID("gpuiTransformationMatrix");
+        public static readonly int INSTANCE_DATA_BUFFER = Shader.PropertyToID("gpuiInstanceData");
+        public static readonly int BUFFER_PARAMETER_BUFFER_SIZE = Shader.PropertyToID("bufferSize");
+        public static class VisibilityKernelPopertiesForOBBFrustumCullingConstants
         {
-            public static readonly int TRANSFORMATION_MATRIX_APPEND_BUFFERS = Shader.PropertyToID("gpuiTransformationMatrix");
-            public static readonly int INSTANCE_DATA_BUFFER = Shader.PropertyToID("gpuiInstanceData");
             public static readonly int RENDERER_TRANSFORM_OFFSET = Shader.PropertyToID("gpuiTransformOffset");
             public static readonly int BUFFER_PARAMETER_MVP_MATRIX = Shader.PropertyToID("mvpMartix");
             public static readonly int BUFFER_PARAMETER_BOUNDS_CENTER = Shader.PropertyToID("boundsCenter");
             public static readonly int BUFFER_PARAMETER_BOUNDS_EXTENTS = Shader.PropertyToID("boundsExtents");
-            public static readonly int BUFFER_PARAMETER_FRUSTUM_CULL_SWITCH = Shader.PropertyToID("isFrustumCulling");
             public static readonly int BUFFER_PARAMETER_FRUSTUM_OFFSET = Shader.PropertyToID("frustumOffset");
             public static readonly int BUFFER_PARAMETER_MAX_VIEW_DISTANCE = Shader.PropertyToID("maxDistance");
             public static readonly int BUFFER_PARAMETER_CAMERA_POSITION = Shader.PropertyToID("camPos");
-            public static readonly int BUFFER_PARAMETER_BUFFER_SIZE = Shader.PropertyToID("bufferSize");
             public static readonly int BUFFER_PARAMETER_HALF_ANGLE = Shader.PropertyToID("halfAngle");
-
             public static readonly int BUFFER_PARAMETER_MIN_CULLING_DISTANCE = Shader.PropertyToID("minCullingDistance");
+        }
+        public static class VisibilityKernelPopertiesForSphereFrustumCullingConstants
+        {
+            public static readonly int CAMERA_FRUSTUM_PLANES = Shader.PropertyToID("frustumPlanes");
         }
     }
 
@@ -63,7 +66,8 @@ namespace Galaxy
         private static NativeList<StarConnection> m_StarConnections;
         private static Matrix4x4[] m_Matrices;
         private static Vector4[] m_Colors;
-
+        private static float4x4[] m_IndirectMatrices;
+        private static float4[] m_IndirectColors;
         private static StarRenderInfo[] m_StarRenderInfos;
         private static MaterialPropertyBlock m_MaterialPropertyBlock;
         private static ComputeBuffer m_StarRenderInfoBuffer;
@@ -73,18 +77,23 @@ namespace Galaxy
 
 
         private static ComputeBuffer m_TransformationMatrixAppendBuffer;
-        private static ComputeShader m_visibilityComputeShader;
-        private static int[] m_instanceVisibilityComputeKernelIDs;
+        private static ComputeShader m_OBBFrustumCullingComputeShader;
+        private static ComputeShader m_SphereFrustumCullingComputeShader;
         private static float[] m_MvpMatrixFloats;
+        private static ComputeBuffer m_LocalToWorldBuffer;
+        private static ComputeBuffer m_EmissionColorBuffer;
+        private static ComputeBuffer m_CameraPlanesBuffer;
         #endregion
 
         #region Public
         private static int m_StarAmount;
-        private static bool m_EnableCulling;
-        private static bool m_InstancedIndirect;
+        private static bool m_EnableInstancedIndirect;
+        private static bool m_EnableGPUFrustumCulling;
         private static UnityEngine.Mesh m_StarMesh;
         private static UnityEngine.Material m_StarMaterial;
         private static UnityEngine.Material m_StarIndirectMaterial;
+        private static UnityEngine.Material m_StarIndirectGPUCullingMaterial;
+
         private static UnityEngine.Mesh m_StarConnectionMesh;
         private static UnityEngine.Material m_StarConnectionMaterial;
         private static Light m_Light;
@@ -94,8 +103,7 @@ namespace Galaxy
         public static NativeList<StarRenderInfo> m_StarInfoList;
         public static UnityEngine.Mesh StarMesh { get => m_StarMesh; set => m_StarMesh = value; }
         public static UnityEngine.Material StarMaterial { get => m_StarMaterial; set => m_StarMaterial = value; }
-        public static bool EnableCulling { get => m_EnableCulling; set => m_EnableCulling = value; }
-        public static bool InstancedIndirect { get => m_InstancedIndirect; set => m_InstancedIndirect = value; }
+        public static bool EnableInstancedIndirect { get => m_EnableInstancedIndirect; set => m_EnableInstancedIndirect = value; }
         public static Light Light { get => m_Light; set => m_Light = value; }
         public static PlanetOrbits PlanetOrbits { get => m_PlanetOrbits; set => m_PlanetOrbits = value; }
         public static int StarAmount { get => m_StarAmount; set => m_StarAmount = value; }
@@ -104,6 +112,8 @@ namespace Galaxy
         public static Mesh StarConnectionMesh { get => m_StarConnectionMesh; set => m_StarConnectionMesh = value; }
         public static UnityEngine.Material StarConnectionMaterial { get => m_StarConnectionMaterial; set => m_StarConnectionMaterial = value; }
         public static bool SequenceConnect { get => m_SequenceConnect; set => m_SequenceConnect = value; }
+        public static bool EnableGPUFrustumCulling { get => m_EnableGPUFrustumCulling; set => m_EnableGPUFrustumCulling = value; }
+        public static Material StarIndirectGPUCullingMaterial { get => m_StarIndirectGPUCullingMaterial; set => m_StarIndirectGPUCullingMaterial = value; }
         #endregion
 
         #region Managers
@@ -116,24 +126,9 @@ namespace Galaxy
         {
             ShutDown();
 
-            #region GPU Culling
-            m_visibilityComputeShader = Resources.Load<ComputeShader>(GalaxyRenderSystemConstants.VISIBILITY_COMPUTE_RESOURCE_PATH);
-            Debug.Log(m_visibilityComputeShader);
-            m_instanceVisibilityComputeKernelIDs = new int[GalaxyRenderSystemConstants.VISIBILITY_COMPUTE_KERNELS.Length];
-            for (int i = 0; i < m_instanceVisibilityComputeKernelIDs.Length; i++)
-            {
-                m_instanceVisibilityComputeKernelIDs[i] = m_visibilityComputeShader.FindKernel(GalaxyRenderSystemConstants.VISIBILITY_COMPUTE_KERNELS[i]);
-            }
-
-            m_MvpMatrixFloats = new float[16];
-            m_TransformationMatrixAppendBuffer = new ComputeBuffer(m_StarAmount, GalaxyRenderSystemConstants.STRIDE_SIZE_MATRIX4X4, ComputeBufferType.Append, ComputeBufferMode.Dynamic);
-            m_TransformationMatrixAppendBuffer.SetCounterValue(0);
-            #endregion
-
             m_Camera = Camera.main;
 
             m_InstanceQuery = EntityManager.CreateEntityQuery(typeof(CustomLocalToWorld), typeof(StarProperties), typeof(CustomColor));
-
             #region Star Connections
             m_StarConnections = new NativeList<StarConnection>(Allocator.Persistent);
             m_StarConnectionsLocalToWorlds = new NativeList<CustomLocalToWorld>(Allocator.Persistent);
@@ -144,9 +139,25 @@ namespace Galaxy
             args = new uint[5] { m_StarMesh.GetIndexCount(0), (uint)m_StarAmount, 0, 0, 0 };
             m_ArgsBuffer = new ComputeBuffer(1, args.Length * sizeof(uint), ComputeBufferType.IndirectArguments);
             m_ArgsBuffer.SetData(args);
-            m_StarRenderInfoBuffer = new ComputeBuffer(m_StarAmount, 80);
-            m_StarRenderInfos = new StarRenderInfo[m_StarAmount];
-            m_StarInfoList = new NativeList<StarRenderInfo>(Allocator.Persistent);
+            if (m_EnableGPUFrustumCulling)
+            {
+                m_IndirectMatrices = new float4x4[m_StarAmount];
+                m_IndirectColors = new float4[m_StarAmount];
+                m_LocalToWorldBuffer = new ComputeBuffer(m_StarAmount, GalaxyRenderSystemConstants.STRIDE_SIZE_MATRIX4X4);
+                m_EmissionColorBuffer = new ComputeBuffer(m_StarAmount, GalaxyRenderSystemConstants.STRIDE_SIZE_FLOAT4);
+                m_OBBFrustumCullingComputeShader = Resources.Load<ComputeShader>(GalaxyRenderSystemConstants.OBB_FRUSTUM_CULLING_KERNEL_RESOURCE_PATH);
+                m_SphereFrustumCullingComputeShader = Resources.Load<ComputeShader>(GalaxyRenderSystemConstants.SPHERE_FRUSTUM_CULLING_KERNEL_RESOURCE_PATH);
+                m_MvpMatrixFloats = new float[16];
+                m_TransformationMatrixAppendBuffer = new ComputeBuffer(m_StarAmount, GalaxyRenderSystemConstants.STRIDE_SIZE_INT, ComputeBufferType.Append);
+                m_TransformationMatrixAppendBuffer.SetCounterValue(0);
+                m_CameraPlanesBuffer = new ComputeBuffer(6, GalaxyRenderSystemConstants.STRIDE_SIZE_FLOAT4);
+            }
+            else
+            {
+                m_StarRenderInfoBuffer = new ComputeBuffer(m_StarAmount, 80);
+                m_StarRenderInfos = new StarRenderInfo[m_StarAmount];
+                m_StarInfoList = new NativeList<StarRenderInfo>(Allocator.Persistent);
+            }
             #endregion
 
             #region DrawMeshInstanced;
@@ -182,6 +193,9 @@ namespace Galaxy
             if (m_StarConnectionsLocalToWorlds.IsCreated) m_StarConnectionsLocalToWorlds.Dispose();
             if (m_StarConnectionsColors.IsCreated) m_StarConnectionsColors.Dispose();
             if (m_TransformationMatrixAppendBuffer != null) m_TransformationMatrixAppendBuffer.Dispose();
+            if (m_LocalToWorldBuffer != null) m_LocalToWorldBuffer.Release();
+            if (m_EmissionColorBuffer != null) m_EmissionColorBuffer.Release();
+            if (m_CameraPlanesBuffer != null) m_CameraPlanesBuffer.Dispose();
         }
 
         protected override void OnDestroyManager()
@@ -193,22 +207,6 @@ namespace Galaxy
         #region Methods
 
         #region GPU Culling
-        public static void UpdateGPUBuffer()
-        {
-            DispatchCSInstancedCameraCalculation(m_instanceVisibilityComputeKernelIDs);
-            // Copy (overwrite) the modified instance count of the append buffer to each index of the indirect renderer buffer (argsBuffer)
-            // that represents a submesh's instance count. The offset is calculated in parallel to the Graphics.DrawMeshInstancedIndirect call,
-            // which expects args[1] to be the instance count for the first LOD's first renderer. Every 5 index offset of args represents the 
-            // next submesh in the renderer, followed by the next renderer and it's submeshes. After all submeshes of all renderers for the 
-            // first LOD, the other LODs follow in the same manner.
-            // For reference, see: https://docs.unity3d.com/ScriptReference/ComputeBuffer.CopyCount.html
-            int[] test = new int[1];
-            ComputeBuffer computeBuffer = new ComputeBuffer(1, sizeof(int), ComputeBufferType.IndirectArguments);
-            ComputeBuffer.CopyCount(m_TransformationMatrixAppendBuffer, computeBuffer, 0);
-            computeBuffer.GetData(test);
-            //Debug.Log(test[0]);
-            computeBuffer.Dispose();
-        }
 
         public static void Matrix4x4ToFloatArray(Matrix4x4 matrix4x4, ref float[] floatArray)
         {
@@ -230,41 +228,71 @@ namespace Galaxy
             floatArray[15] = matrix4x4[3, 3];
         }
 
-        public static void DispatchCSInstancedCameraCalculation(int[] instanceVisibilityComputeKernelIDs)
+        public static void DispatchOBBFrustumCalculation(Mesh mesh, ComputeBuffer matrixBuffer, ComputeBuffer resultBuffer, int totalInstanceAmount)
         {
-
-            int instanceVisibilityComputeKernelId = 0;
-            //m_visibilityComputeShader.SetBuffer(instanceVisibilityComputeKernelId, GalaxyRenderSystemConstants.VisibilityKernelPoperties.INSTANCE_DATA_BUFFER, m_LocalToWorldBuffer);
-            m_visibilityComputeShader.SetBuffer(instanceVisibilityComputeKernelId, GalaxyRenderSystemConstants.VisibilityKernelPoperties.TRANSFORMATION_MATRIX_APPEND_BUFFERS, m_TransformationMatrixAppendBuffer);
-
             Matrix4x4ToFloatArray(m_Camera.projectionMatrix * m_Camera.worldToCameraMatrix, ref m_MvpMatrixFloats);
-
-            m_visibilityComputeShader.SetFloats(GalaxyRenderSystemConstants.VisibilityKernelPoperties.BUFFER_PARAMETER_MVP_MATRIX,
+            m_OBBFrustumCullingComputeShader.SetBuffer(0, GalaxyRenderSystemConstants.INSTANCE_DATA_BUFFER, 
+                matrixBuffer);
+            m_OBBFrustumCullingComputeShader.SetBuffer(0, GalaxyRenderSystemConstants.TRANSFORMATION_MATRIX_APPEND_BUFFERS, 
+                resultBuffer);
+            m_OBBFrustumCullingComputeShader.SetFloats(GalaxyRenderSystemConstants.VisibilityKernelPopertiesForOBBFrustumCullingConstants.BUFFER_PARAMETER_MVP_MATRIX,
                 m_MvpMatrixFloats);
-            m_visibilityComputeShader.SetVector(GalaxyRenderSystemConstants.VisibilityKernelPoperties.BUFFER_PARAMETER_BOUNDS_CENTER,
-                m_StarMesh.bounds.center);
-            m_visibilityComputeShader.SetVector(GalaxyRenderSystemConstants.VisibilityKernelPoperties.BUFFER_PARAMETER_BOUNDS_EXTENTS,
-                m_StarMesh.bounds.extents);
-            m_visibilityComputeShader.SetFloat(GalaxyRenderSystemConstants.VisibilityKernelPoperties.BUFFER_PARAMETER_MAX_VIEW_DISTANCE,
+            m_OBBFrustumCullingComputeShader.SetVector(GalaxyRenderSystemConstants.VisibilityKernelPopertiesForOBBFrustumCullingConstants.BUFFER_PARAMETER_BOUNDS_CENTER,
+                mesh.bounds.center);
+            m_OBBFrustumCullingComputeShader.SetVector(GalaxyRenderSystemConstants.VisibilityKernelPopertiesForOBBFrustumCullingConstants.BUFFER_PARAMETER_BOUNDS_EXTENTS,
+                mesh.bounds.extents);
+            m_OBBFrustumCullingComputeShader.SetFloat(GalaxyRenderSystemConstants.VisibilityKernelPopertiesForOBBFrustumCullingConstants.BUFFER_PARAMETER_MAX_VIEW_DISTANCE,
                 m_Camera.farClipPlane);
-            m_visibilityComputeShader.SetVector(GalaxyRenderSystemConstants.VisibilityKernelPoperties.BUFFER_PARAMETER_CAMERA_POSITION,
+            m_OBBFrustumCullingComputeShader.SetVector(GalaxyRenderSystemConstants.VisibilityKernelPopertiesForOBBFrustumCullingConstants.BUFFER_PARAMETER_CAMERA_POSITION,
                 m_Camera.transform.position);
-            m_visibilityComputeShader.SetFloat(GalaxyRenderSystemConstants.VisibilityKernelPoperties.BUFFER_PARAMETER_FRUSTUM_OFFSET,
+            m_OBBFrustumCullingComputeShader.SetFloat(GalaxyRenderSystemConstants.VisibilityKernelPopertiesForOBBFrustumCullingConstants.BUFFER_PARAMETER_FRUSTUM_OFFSET,
                 0.2f);
-            m_visibilityComputeShader.SetFloat(GalaxyRenderSystemConstants.VisibilityKernelPoperties.BUFFER_PARAMETER_MIN_CULLING_DISTANCE,
+            m_OBBFrustumCullingComputeShader.SetFloat(GalaxyRenderSystemConstants.VisibilityKernelPopertiesForOBBFrustumCullingConstants.BUFFER_PARAMETER_MIN_CULLING_DISTANCE,
                 0);
-            m_visibilityComputeShader.SetInt(GalaxyRenderSystemConstants.VisibilityKernelPoperties.BUFFER_PARAMETER_BUFFER_SIZE,
-                m_StarAmount);
-            m_visibilityComputeShader.SetFloat(GalaxyRenderSystemConstants.VisibilityKernelPoperties.BUFFER_PARAMETER_HALF_ANGLE, Mathf.Tan(Mathf.Deg2Rad * m_Camera.fieldOfView * 0.25f));
-
+            m_OBBFrustumCullingComputeShader.SetInt(GalaxyRenderSystemConstants.BUFFER_PARAMETER_BUFFER_SIZE,
+                totalInstanceAmount);
+            m_OBBFrustumCullingComputeShader.SetFloat(GalaxyRenderSystemConstants.VisibilityKernelPopertiesForOBBFrustumCullingConstants.BUFFER_PARAMETER_HALF_ANGLE, 
+                Mathf.Tan(Mathf.Deg2Rad * m_Camera.fieldOfView * 0.25f));
             // Dispatch the compute shader
-            m_visibilityComputeShader.Dispatch(instanceVisibilityComputeKernelId,
-                Mathf.CeilToInt(m_StarAmount / GalaxyRenderSystemConstants.VISIBILITY_SHADER_THREAD_COUNT), 1, 1);
+            m_OBBFrustumCullingComputeShader.Dispatch(0,Mathf.CeilToInt(totalInstanceAmount / GalaxyRenderSystemConstants.VISIBILITY_SHADER_THREAD_COUNT), 1, 1);
+
+            // Copy (overwrite) the modified instance count of the append buffer to each index of the indirect renderer buffer (argsBuffer)
+            // that represents a submesh's instance count. The offset is calculated in parallel to the Graphics.DrawMeshInstancedIndirect call,
+            // which expects args[1] to be the instance count for the first LOD's first renderer. Every 5 index offset of args represents the 
+            // next submesh in the renderer, followed by the next renderer and it's submeshes. After all submeshes of all renderers for the 
+            // first LOD, the other LODs follow in the same manner.
+            // For reference, see: https://docs.unity3d.com/ScriptReference/ComputeBuffer.CopyCount.html
+            ComputeBuffer.CopyCount(resultBuffer, m_ArgsBuffer, 1);
+        }
+
+        public static void DispatchSphereFrustumCalculation(Mesh mesh, ComputeBuffer matrixBuffer, ComputeBuffer resultBuffer, int totalInstanceAmount)
+        {
+            var planes = GeometryUtility.CalculateFrustumPlanes(m_Camera);
+            float4[] frustumPlanes = new float4[6];
+            for (int i = 0; i < 6; i++)
+            {
+                frustumPlanes[i].x = planes[i].normal.x;
+                frustumPlanes[i].y = planes[i].normal.y;
+                frustumPlanes[i].z = planes[i].normal.z;
+                frustumPlanes[i].w = planes[i].distance;
+            }
+            m_SphereFrustumCullingComputeShader.SetBuffer(0, GalaxyRenderSystemConstants.INSTANCE_DATA_BUFFER,
+                matrixBuffer);
+            m_SphereFrustumCullingComputeShader.SetBuffer(0, GalaxyRenderSystemConstants.TRANSFORMATION_MATRIX_APPEND_BUFFERS,
+                resultBuffer);
+            m_CameraPlanesBuffer.SetData(frustumPlanes);
+            m_SphereFrustumCullingComputeShader.SetBuffer(0, GalaxyRenderSystemConstants.VisibilityKernelPopertiesForSphereFrustumCullingConstants.CAMERA_FRUSTUM_PLANES,
+                m_CameraPlanesBuffer);
+            m_SphereFrustumCullingComputeShader.SetInt(GalaxyRenderSystemConstants.BUFFER_PARAMETER_BUFFER_SIZE,
+                totalInstanceAmount);
+            // Dispatch the compute shader
+            m_SphereFrustumCullingComputeShader.Dispatch(0, Mathf.CeilToInt(totalInstanceAmount / GalaxyRenderSystemConstants.VISIBILITY_SHADER_THREAD_COUNT), 1, 1);
+            ComputeBuffer.CopyCount(resultBuffer, m_ArgsBuffer, 1);
         }
 
 
-
         #endregion
+
         public static void AddStarConnection(StarConnection starConnection)
         {
             //Validity check.
@@ -282,6 +310,7 @@ namespace Galaxy
             m_StarConnectionsColors.Clear();
         }
 
+        #region Memcpy
         public static unsafe void ToArray(NativeSlice<CustomLocalToWorld> transforms, int count, Matrix4x4[] outMatrices, int offset)
         {
             fixed (Matrix4x4* resultMatrices = outMatrices)
@@ -329,6 +358,8 @@ namespace Galaxy
         }
         #endregion
 
+        #endregion
+
         #region Jobs
         [BurstCompile]
         public struct StarConnectionsGenerator : IJobParallelFor
@@ -368,15 +399,31 @@ namespace Galaxy
             m_CustomColors = m_InstanceQuery.ToComponentDataArray<CustomColor>(Allocator.TempJob, out inputDeps);
             inputDeps.Complete();
             #region Draw stars
-            if (m_InstancedIndirect)
+            if (m_EnableInstancedIndirect)
             {
-                ToArray(m_StarInfoList.AsArray(), m_StarInfoList.Length, m_StarRenderInfos, 0);
-                m_StarRenderInfoBuffer.SetData(m_StarRenderInfos);
-                m_StarIndirectMaterial.SetBuffer("starInfoBuffer", m_StarRenderInfoBuffer);
-                args[1] = (uint)m_StarInfoList.Length;
-                m_ArgsBuffer.SetData(args);
-                Graphics.DrawMeshInstancedIndirect(m_StarMesh, 0, m_StarIndirectMaterial, new Bounds(Vector3.zero, Vector3.one * 60000), m_ArgsBuffer, 0, null, 0, false, 0);
-                m_StarInfoList.Clear();
+                if (m_EnableGPUFrustumCulling)
+                {
+                    ToArray(m_StarLocalToWorlds, m_StarAmount, m_IndirectMatrices, 0);
+                    ToArray(m_CustomColors, m_StarAmount, m_IndirectColors, 0);
+                    m_LocalToWorldBuffer.SetData(m_IndirectMatrices);
+                    m_EmissionColorBuffer.SetData(m_IndirectColors);
+                    m_TransformationMatrixAppendBuffer.SetCounterValue(0);
+                    DispatchSphereFrustumCalculation(m_StarMesh, m_LocalToWorldBuffer, m_TransformationMatrixAppendBuffer, m_StarAmount);
+                    m_StarIndirectGPUCullingMaterial.SetBuffer("drawIndexBuffer", m_TransformationMatrixAppendBuffer);
+                    m_StarIndirectGPUCullingMaterial.SetBuffer("localToWorldBuffer", m_LocalToWorldBuffer);
+                    m_StarIndirectGPUCullingMaterial.SetBuffer("emissionColorBuffer", m_EmissionColorBuffer);
+                    Graphics.DrawMeshInstancedIndirect(m_StarMesh, 0, m_StarIndirectGPUCullingMaterial, new Bounds(Vector3.zero, Vector3.one * 60000), m_ArgsBuffer, 0, null, 0, false, 0);
+                }
+                else
+                {
+                    ToArray(m_StarInfoList.AsArray(), m_StarInfoList.Length, m_StarRenderInfos, 0);
+                    m_StarRenderInfoBuffer.SetData(m_StarRenderInfos);
+                    m_StarIndirectMaterial.SetBuffer("starInfoBuffer", m_StarRenderInfoBuffer);
+                    args[1] = (uint)m_StarInfoList.Length;
+                    m_ArgsBuffer.SetData(args);
+                    Graphics.DrawMeshInstancedIndirect(m_StarMesh, 0, m_StarIndirectMaterial, new Bounds(Vector3.zero, Vector3.one * 60000), m_ArgsBuffer, 0, null, 0, false, 0);
+                    m_StarInfoList.Clear();
+                }
             }
             else
             {
@@ -479,6 +526,4 @@ namespace Galaxy
             return inputDeps;
         }
     }
-
-
 }

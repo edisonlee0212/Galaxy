@@ -28,7 +28,7 @@ namespace Galaxy
     #endregion
 
     #region Simulation Systems
-    
+
     [UpdateBefore(typeof(TransformSystemGroup))]
     public class StarTransformSimulationSystem : JobComponentSystem
     {
@@ -54,11 +54,13 @@ namespace Galaxy
         public static bool ContinuousSimulation { get => m_ContinuousSimulation; set => m_ContinuousSimulation = value; }
         public static float DiscreteSimulationTimeStep { get => m_DiscreteSimulationTimeStep; set => m_DiscreteSimulationTimeStep = value; }
         public static Entity FollowedStar { get => m_FollowedStar; set => m_FollowedStar = value; }
-        public static float ScaleFactor { get => m_ScaleFactor;
+        public static float ScaleFactor
+        {
+            get => m_ScaleFactor;
             set
             {
-                if(value >= 1 && value <= 2)
-                m_ScaleFactor = value;
+                if (value >= 1 && value <= 2)
+                    m_ScaleFactor = value;
             }
         }
 
@@ -167,7 +169,7 @@ namespace Galaxy
                 if (fpls4.x * position.x + fpls4.y * position.y + fpls4.z * position.z + fpls4.w <= c4.Value) res = false;
                 if (fpls5.x * position.x + fpls5.y * position.y + fpls5.z * position.z + fpls5.w <= c4.Value) res = false;
                 if (fpls6.x * position.x + fpls6.y * position.y + fpls6.z * position.z + fpls6.w <= c4.Value) res = false;
-                if (res)starRenderInfos.Enqueue(new StarRenderInfo
+                if (res) starRenderInfos.Enqueue(new StarRenderInfo
                 {
                     LocalToWorld = ltw,
                     EmissionColor = color
@@ -200,13 +202,13 @@ namespace Galaxy
                 }
                 else if (distance > 15000)
                 {
-                    color = ((starProperties.Color * 40 + color * (distance - 40)) / distance).normalized * 1.5f ;
+                    color = ((starProperties.Color * 40 + color * (distance - 40)) / distance).normalized * 1.5f;
                     distance = 15000;
                     c4.Value = c0.Mass * distance / factor * scaleFactor;
                 }
                 else
                 {
-                    color = ((starProperties.Color * 20 + (Vector4)Color.white * 20 + color * (distance - 40)) / distance).normalized * 1.8f ;
+                    color = ((starProperties.Color * 20 + (Vector4)Color.white * 20 + color * (distance - 40)) / distance).normalized * 1.8f;
                     c4.Value = starProperties.Mass * distance / factor * scaleFactor;
                 }
                 c5.Color = color / (1 + (scaleFactor - 1) / 3);
@@ -218,7 +220,8 @@ namespace Galaxy
                 {
                     ltw.c3 = new float4(0, 0, 0, 1);
                 }
-                else {
+                else
+                {
                     ltw.c3 = new float4((float3)position, 1);
                 }
                 c2.Value = ltw;
@@ -239,72 +242,74 @@ namespace Galaxy
         protected override JobHandle OnUpdate(JobHandle inputDeps)
         {
             m_DiscreteSimulationTimer += Time.deltaTime;
-            if (GalaxyRenderSystem.InstancedIndirect)
-            {
-                var planes = GeometryUtility.CalculateFrustumPlanes(m_Camera);
-                float4[] fpls = new float4[6];
-                for(int i = 0; i < 6; i++)
-                {
-                    fpls[i].x = planes[i].normal.x;
-                    fpls[i].y = planes[i].normal.y;
-                    fpls[i].z = planes[i].normal.z;
-                    fpls[i].w = planes[i].distance;
-                }
-
-                NativeQueue<StarRenderInfo> queue = new NativeQueue<StarRenderInfo>(Allocator.TempJob);
-                m_DiscreteSimulationTimer = 0;
-                if (m_FollowedStar != Entity.Null) FloatingOrigin = EntityManager.GetComponentData<OrbitProperties>(m_FollowedStar).GetPoint(SimulatedTime + EntityManager.GetComponentData<StarProperties>(m_FollowedStar).StartingTime);
-                var job = new StarPositionsForIndirectJob
-                {
-                    currentTime = SimulatedTime,
-                    floatingOrigin = FloatingOrigin,
-                    scaleFactor = m_ScaleFactor,
-                    properties = m_DensityWave.DensityWaveProperties,
-                    starRenderInfos = queue.ToConcurrent(),
-                    fpls1 = fpls[0],
-                    fpls2 = fpls[1],
-                    fpls3 = fpls[2],
-                    fpls4 = fpls[3],
-                    fpls5 = fpls[4],
-                    fpls6 = fpls[5]
-                };
-                
-                if (m_CalculateOrbit)
-                {
-                    CalculateOrbit = false;
-                    calculateStarOrbitJob.densityWaveProperties = DensityWave.DensityWaveProperties;
-                    inputDeps = calculateStarOrbitJob.Schedule(this, inputDeps);
-                    inputDeps.Complete();
-                }
-                inputDeps = job.Schedule(this, inputDeps);
-                inputDeps.Complete();
-                int count = queue.Count;
-                var list = GalaxyRenderSystem.m_StarInfoList;
-                for(int i = 0; i < count; i++)
-                {
-                    list.Add(queue.Dequeue());
-                }
-                queue.Dispose();
-                return inputDeps;
-            }
-
             if (m_ContinuousSimulation || m_DiscreteSimulationTimer > m_DiscreteSimulationTimeStep)
             {
-                m_DiscreteSimulationTimer = 0;
-                calculateStarPositionsJob.currentTime = SimulatedTime;
-                if (m_FollowedStar != Entity.Null) FloatingOrigin = EntityManager.GetComponentData<OrbitProperties>(m_FollowedStar).GetPoint(SimulatedTime + EntityManager.GetComponentData<StarProperties>(m_FollowedStar).StartingTime);
-                calculateStarPositionsJob.floatingOrigin = FloatingOrigin;
-                calculateStarPositionsJob.scaleFactor = m_ScaleFactor;
-                calculateStarPositionsJob.properties = m_DensityWave.DensityWaveProperties;
-                if (m_CalculateOrbit)
+                if (GalaxyRenderSystem.EnableInstancedIndirect && !GalaxyRenderSystem.EnableGPUFrustumCulling)
                 {
-                    CalculateOrbit = false;
-                    calculateStarOrbitJob.densityWaveProperties = DensityWave.DensityWaveProperties;
-                    inputDeps = calculateStarOrbitJob.Schedule(this, inputDeps);
+                    var planes = GeometryUtility.CalculateFrustumPlanes(m_Camera);
+                    float4[] fpls = new float4[6];
+                    for (int i = 0; i < 6; i++)
+                    {
+                        fpls[i].x = planes[i].normal.x;
+                        fpls[i].y = planes[i].normal.y;
+                        fpls[i].z = planes[i].normal.z;
+                        fpls[i].w = planes[i].distance;
+                    }
+
+                    NativeQueue<StarRenderInfo> queue = new NativeQueue<StarRenderInfo>(Allocator.TempJob);
+                    m_DiscreteSimulationTimer = 0;
+                    if (m_FollowedStar != Entity.Null) FloatingOrigin = EntityManager.GetComponentData<OrbitProperties>(m_FollowedStar).GetPoint(SimulatedTime + EntityManager.GetComponentData<StarProperties>(m_FollowedStar).StartingTime);
+                    var job = new StarPositionsForIndirectJob
+                    {
+                        currentTime = SimulatedTime,
+                        floatingOrigin = FloatingOrigin,
+                        scaleFactor = m_ScaleFactor,
+                        properties = m_DensityWave.DensityWaveProperties,
+                        starRenderInfos = queue.ToConcurrent(),
+                        fpls1 = fpls[0],
+                        fpls2 = fpls[1],
+                        fpls3 = fpls[2],
+                        fpls4 = fpls[3],
+                        fpls5 = fpls[4],
+                        fpls6 = fpls[5]
+                    };
+
+                    if (m_CalculateOrbit)
+                    {
+                        CalculateOrbit = false;
+                        calculateStarOrbitJob.densityWaveProperties = DensityWave.DensityWaveProperties;
+                        inputDeps = calculateStarOrbitJob.Schedule(this, inputDeps);
+                        inputDeps.Complete();
+                    }
+                    inputDeps = job.Schedule(this, inputDeps);
+                    inputDeps.Complete();
+                    int count = queue.Count;
+                    var list = GalaxyRenderSystem.m_StarInfoList;
+                    for (int i = 0; i < count; i++)
+                    {
+                        list.Add(queue.Dequeue());
+                    }
+                    queue.Dispose();
+                    return inputDeps;
+                }
+                else
+                {
+                    m_DiscreteSimulationTimer = 0;
+                    calculateStarPositionsJob.currentTime = SimulatedTime;
+                    if (m_FollowedStar != Entity.Null) FloatingOrigin = EntityManager.GetComponentData<OrbitProperties>(m_FollowedStar).GetPoint(SimulatedTime + EntityManager.GetComponentData<StarProperties>(m_FollowedStar).StartingTime);
+                    calculateStarPositionsJob.floatingOrigin = FloatingOrigin;
+                    calculateStarPositionsJob.scaleFactor = m_ScaleFactor;
+                    calculateStarPositionsJob.properties = m_DensityWave.DensityWaveProperties;
+                    if (m_CalculateOrbit)
+                    {
+                        CalculateOrbit = false;
+                        calculateStarOrbitJob.densityWaveProperties = DensityWave.DensityWaveProperties;
+                        inputDeps = calculateStarOrbitJob.Schedule(this, inputDeps);
+                        inputDeps.Complete();
+                    }
+                    inputDeps = calculateStarPositionsJob.Schedule(this, inputDeps);
                     inputDeps.Complete();
                 }
-                inputDeps = calculateStarPositionsJob.Schedule(this, inputDeps);
-                inputDeps.Complete();
             }
             return inputDeps;
         }
@@ -576,7 +581,7 @@ namespace Galaxy
                 }
                 #endregion
             }
-            else if(m_InTransition)
+            else if (m_InTransition)
             {
                 m_Timer -= Time.deltaTime;
                 if (m_Timer < 0)
@@ -675,7 +680,7 @@ namespace Galaxy
         public int ToIndex;
     }
 
-    
+
     #endregion
 
     #region Other Systems
@@ -795,7 +800,7 @@ namespace Galaxy
         public static int StarAmount { get => m_StarAmount; set => m_StarAmount = value; }
         public static int PlanetAmount { get => m_PlanetAmount; set => m_PlanetAmount = value; }
         public static NativeArray<StarData> StarDatas { get => m_StarDatas; }
-        public static NativeArray<PlanetData> PlanetDatas { get => m_PlanetDatas;}
+        public static NativeArray<PlanetData> PlanetDatas { get => m_PlanetDatas; }
         public static NativeArray<ResourceData> ResourceDatas { get => m_ResourceDatas; set => m_ResourceDatas = value; }
         #endregion
 
@@ -813,7 +818,7 @@ namespace Galaxy
             if (PlanetDatas.IsCreated) PlanetDatas.Dispose();
             if (ResourceDatas.IsCreated) ResourceDatas.Dispose();
             m_StarDatas = new NativeArray<StarData>(m_StarAmount, Allocator.Persistent);
-            
+
             Update();
         }
 
@@ -835,7 +840,7 @@ namespace Galaxy
             [NativeDisableContainerSafetyRestriction]
             [WriteOnly] public NativeArray<StarData> starDatas;
             [ReadOnly] public NativeArray<StarProperties> starsProperties;
-            
+
             public void Execute(int index)
             {
                 StarData starData = default;
@@ -894,7 +899,7 @@ namespace Galaxy
             m_PlanetAmount = 0;
 
 
-            for(int i = 0; i < m_StarAmount; i++)
+            for (int i = 0; i < m_StarAmount; i++)
             {
                 var starData = m_StarDatas[i];
                 var a = Random.Next();
@@ -909,11 +914,11 @@ namespace Galaxy
             m_PlanetDatas = new NativeArray<PlanetData>(m_PlanetAmount, Allocator.Persistent);
 
             int index = 0;
-            for(int i = 0; i < m_StarAmount; i++)
+            for (int i = 0; i < m_StarAmount; i++)
             {
                 StarData starData = m_StarDatas[i];
                 int planetAmount = starData.PlanetAmount;
-                for(int j = 0; j < planetAmount; j++)
+                for (int j = 0; j < planetAmount; j++)
                 {
                     PlanetData planetData = default;
                     planetData.DistanceToStar = 6 + 2 * j;
@@ -922,7 +927,7 @@ namespace Galaxy
                     planetData.Reference = index;
                     planetData.Seed = Random.Next();
                     m_PlanetDatas[index] = planetData;
-                    if(j == 0)
+                    if (j == 0)
                     {
                         starData.FirstPlanetReference = index;
                         m_StarDatas[i] = starData;
@@ -943,7 +948,7 @@ namespace Galaxy
         }
     }
 
-    
+
 
     #endregion
 }

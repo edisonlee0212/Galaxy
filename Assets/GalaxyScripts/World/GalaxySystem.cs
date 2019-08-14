@@ -31,7 +31,9 @@ namespace Galaxy
         private Material m_StarConnectionMaterial;
         [SerializeField]
         private Material m_StarIndirectMaterial;
-        
+        [SerializeField]
+        private Material m_StarIndirectGPUCullingMaterial;
+
         [SerializeField]
         private Light m_Light;
         [SerializeField]
@@ -69,10 +71,12 @@ namespace Galaxy
         #endregion
 
         #region Managers
-        public void Init(GalaxyPatternProperties densityWaveProperties, int starAmount = 10000, int maxPlanetAmount = 20, bool connectAllStars = false, bool culling = false)
+        public void Init(GalaxyPatternProperties densityWaveProperties, int starAmount = 10000, int maxPlanetAmount = 20, bool connectAllStars = false, bool enableIndirect = false, bool enableGPUCulling = false)
         {
-            Debug.Log("Culling: " + culling);
-            GalaxyRenderSystem.InstancedIndirect = culling;
+            Debug.Log("Indirect: " + enableIndirect);
+            Debug.Log("Enable GPU Culling: " + enableGPUCulling);
+            GalaxyRenderSystem.EnableInstancedIndirect = enableIndirect;
+            GalaxyRenderSystem.EnableGPUFrustumCulling = enableGPUCulling;
             m_EntityManager = World.Active.EntityManager;
             m_StarAmount = starAmount;
             m_MaxPlanetAmount = maxPlanetAmount;
@@ -115,6 +119,7 @@ namespace Galaxy
             GalaxyRenderSystem.StarMesh = m_StarMesh;
             GalaxyRenderSystem.StarMaterial = m_StarMaterial;
             GalaxyRenderSystem.StarIndirectMaterial = m_StarIndirectMaterial;
+            GalaxyRenderSystem.StarIndirectGPUCullingMaterial = m_StarIndirectGPUCullingMaterial;
             GalaxyRenderSystem.StarConnectionMaterial = m_StarConnectionMaterial;
             GalaxyRenderSystem.StarConnectionMesh = m_StarConnectionMesh;
             GalaxyRenderSystem.SequenceConnect = connectAllStars;

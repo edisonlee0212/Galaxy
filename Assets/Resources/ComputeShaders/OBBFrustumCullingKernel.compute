@@ -7,7 +7,7 @@
 #define NUM_THREADS 1024
 #endif
 
-#pragma kernel CSInstancedCameraCalculationKernel
+#pragma kernel OBBFrustumCullingKernel
 
 RWStructuredBuffer<float4x4> gpuiInstanceData;
 
@@ -22,7 +22,7 @@ uniform uint bufferSize;
 
 uniform float halfAngle;
 
-AppendStructuredBuffer<float4x4> gpuiTransformationMatrix;
+AppendStructuredBuffer<uint> gpuiTransformationMatrix;
 
 
 uniform uint lodShift;
@@ -107,18 +107,15 @@ bool IsAppending(uint3 id, out float dist)
 }
 
 [numthreads(NUM_THREADS, 1, 1)]
-void CSInstancedCameraCalculationKernel(uint3 id : SV_DispatchThreadID)
+void OBBFrustumCullingKernel(uint3 id : SV_DispatchThreadID)
 {
 	if (id.x >= bufferSize)
 		return;
 
 	float dist = 0;
-	
-	gpuiTransformationMatrix.Append(gpuiInstanceData[id.x]);
-
 	if (IsAppending(id, dist))
 	{
-		gpuiTransformationMatrix.Append(gpuiInstanceData[id.x]);
+		gpuiTransformationMatrix.Append(id.x);
 	}
 }
 

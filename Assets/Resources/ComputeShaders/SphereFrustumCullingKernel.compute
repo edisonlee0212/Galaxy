@@ -1,0 +1,33 @@
+﻿
+#if SHADER_API_MOBILE && SHADER_API_METAL
+#define NUM_THREADS 512
+#elif SHADER_API_MOBILE && SHADER_API_GLES3
+#define NUM_THREADS 128
+#else
+#define NUM_THREADS 1024
+#endif
+
+#pragma kernel SphereFrustumCullingKernel
+
+RWStructuredBuffer<float4x4> gpuiInstanceData;
+RWStructuredBuffer<float4> frustumPlanes;
+AppendStructuredBuffer<uint> gpuiTransformationMatrix;
+
+uniform uint bufferSize;
+
+[numthreads(NUM_THREADS, 1, 1)]
+void SphereFrustumCullingKernel(uint3 id : SV_DispatchThreadID)
+{
+	if (id.x >= bufferSize)
+		return;
+	bool isCulled = false;
+	float3 pos = gpuiInstanceData[id.x]._14_24_34;
+	float radius = gpuiInstanceData[id.x]._11;
+	for (int i = 0; i < 6; i++) {
+		if (frustumPlanes[i].x * pos.x + frustumPlanes[i].y * pos.y + frustumPlanes[i].z * pos.z + frustumPlanes[i].w <= -radius) isCulled = true;
+	}
+	if(!isCulled){
+		gpuiTransformationMatrix.Append(id.x);
+	}
+}
+
