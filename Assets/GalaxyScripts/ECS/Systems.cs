@@ -34,6 +34,7 @@ namespace Galaxy
     {
         #region Attributes
         private static float m_DiscreteSimulationTimer;
+        private UnityEngine.Plane[] planes;
         #endregion
 
         #region Public
@@ -75,6 +76,7 @@ namespace Galaxy
 
         public void Init()
         {
+            planes = new UnityEngine.Plane[6];
             m_ScaleFactor = 1;
             m_Camera = Camera.main;
             FloatingOrigin = new double3(0, 0, 0);
@@ -106,7 +108,7 @@ namespace Galaxy
         #region Jobs
 
         [BurstCompile]
-        struct StarPositionsForIndirectJob : IJobForEach<StarProperties, Position, CustomLocalToWorld, OrbitProperties, Scale, CustomColor>
+        struct StarPositionsForIndirectJob : IJobForEach<StarProperties, Position, CustomLocalToWorld, OrbitProperties, Scale, DefaultColor>
         {
             [ReadOnly] public float currentTime;
             [ReadOnly] public double3 floatingOrigin;
@@ -120,7 +122,7 @@ namespace Galaxy
             [ReadOnly] public float4 fpls4;
             [ReadOnly] public float4 fpls5;
             [ReadOnly] public float4 fpls6;
-            public void Execute([ReadOnly] ref StarProperties c0, [WriteOnly] ref Position c1, [WriteOnly] ref CustomLocalToWorld c2, [ReadOnly] ref OrbitProperties c3, [WriteOnly] ref Scale c4, [WriteOnly] ref CustomColor c5)
+            public void Execute([ReadOnly] ref StarProperties c0, [WriteOnly] ref Position c1, [WriteOnly] ref CustomLocalToWorld c2, [ReadOnly] ref OrbitProperties c3, [WriteOnly] ref Scale c4, [WriteOnly] ref DefaultColor c5)
             {
                 double3 position = c3.GetPoint((currentTime + c0.StartingTime));
                 c1.Value = position;
@@ -178,13 +180,13 @@ namespace Galaxy
 
         }
         [BurstCompile]
-        struct StarPositionsJob : IJobForEach<StarProperties, Position, CustomLocalToWorld, OrbitProperties, Scale, CustomColor>
+        struct StarPositionsJob : IJobForEach<StarProperties, Position, CustomLocalToWorld, OrbitProperties, Scale, DefaultColor>
         {
             [ReadOnly] public float currentTime;
             [ReadOnly] public double3 floatingOrigin;
             [ReadOnly] public float scaleFactor;
             [ReadOnly] public GalaxyPatternProperties properties;
-            public void Execute([ReadOnly] ref StarProperties c0, [WriteOnly] ref Position c1, [WriteOnly] ref CustomLocalToWorld c2, [ReadOnly] ref OrbitProperties c3, [WriteOnly] ref Scale c4, [WriteOnly] ref CustomColor c5)
+            public void Execute([ReadOnly] ref StarProperties c0, [WriteOnly] ref Position c1, [WriteOnly] ref CustomLocalToWorld c2, [ReadOnly] ref OrbitProperties c3, [WriteOnly] ref Scale c4, [WriteOnly] ref DefaultColor c5)
             {
                 double3 position = c3.GetPoint((currentTime + c0.StartingTime));
                 c1.Value = position;
@@ -246,7 +248,7 @@ namespace Galaxy
             {
                 if (GalaxyRenderSystem.EnableInstancedIndirect && !GalaxyRenderSystem.EnableGPUFrustumCulling)
                 {
-                    var planes = GeometryUtility.CalculateFrustumPlanes(m_Camera);
+                    GeometryUtility.CalculateFrustumPlanes(m_Camera, planes);
                     float4[] fpls = new float4[6];
                     for (int i = 0; i < 6; i++)
                     {
@@ -315,13 +317,9 @@ namespace Galaxy
         }
     }
 
-    #endregion
-
-    #region Presentation Systems
-
     [UpdateInGroup(typeof(SimulationSystemGroup))]
     [UpdateBefore(typeof(StarTransformSimulationSystem))]
-    public class SelectionSystem : JobComponentSystem
+    public class RaySelectionSystem : JobComponentSystem
     {
         #region Attributes
         private static Camera m_MainCamera;
@@ -490,8 +488,6 @@ namespace Galaxy
                 }
             }
         }
-
-
         #endregion
 
         protected override JobHandle OnUpdate(JobHandle inputDeps)
@@ -611,6 +607,189 @@ namespace Galaxy
         }
     }
 
+    [UpdateInGroup(typeof(SimulationSystemGroup))]
+    [UpdateAfter(typeof(StarTransformSimulationSystem))]
+    public class BoxSelectionSystem : JobComponentSystem
+    {
+        #region Attributes
+        private static Camera m_Camera;
+        private static Vector3 m_SavedMousePosition;
+        private static Vector3 m_CurrentMousePosition;
+        #endregion
+
+        #region Public
+        private static float4[] m_ClippingPlanes;
+        private static bool m_Selecting;
+
+        public static float4[] ClippingPlanes { get => m_ClippingPlanes; set => m_ClippingPlanes = value; }
+        public static bool Selecting
+        {
+            get => m_Selecting;
+            set
+            {
+                m_Selecting = value;
+            }
+        }
+        #endregion
+
+        #region Managers
+        protected override void OnCreateManager()
+        {
+            Enabled = false;
+        }
+
+        public void Init()
+        {
+            m_Selecting = false;
+            m_Camera = Camera.main;
+            m_ClippingPlanes = new float4[6];
+            Enabled = true;
+        }
+
+        public void ShutDown()
+        {
+            Enabled = false;
+        }
+
+        protected override void OnDestroyManager()
+        {
+            ShutDown();
+        }
+
+        #endregion
+
+        #region Methods
+
+        private void CalculateClippingPlanes(float farDistance = -1)
+        {
+            if (farDistance == -1) farDistance = m_Camera.farClipPlane;
+            UnityEngine.Plane plane = default;
+            Vector3[] points = new Vector3[4];
+            if ((m_CurrentMousePosition.x - m_SavedMousePosition.x) * (m_CurrentMousePosition.y - m_SavedMousePosition.y) < 0)
+            {
+                points[0] = m_Camera.ScreenToWorldPoint(new Vector3(m_SavedMousePosition.x, m_SavedMousePosition.y, farDistance));
+                points[1] = m_Camera.ScreenToWorldPoint(new Vector3(m_SavedMousePosition.x, m_CurrentMousePosition.y, farDistance));
+                points[2] = m_Camera.ScreenToWorldPoint(new Vector3(m_CurrentMousePosition.x, m_CurrentMousePosition.y, farDistance));
+                points[3] = m_Camera.ScreenToWorldPoint(new Vector3(m_CurrentMousePosition.x, m_SavedMousePosition.y, farDistance));
+            }
+            else
+            {
+                points[3] = m_Camera.ScreenToWorldPoint(new Vector3(m_SavedMousePosition.x, m_SavedMousePosition.y, farDistance));
+                points[2] = m_Camera.ScreenToWorldPoint(new Vector3(m_SavedMousePosition.x, m_CurrentMousePosition.y, farDistance));
+                points[1] = m_Camera.ScreenToWorldPoint(new Vector3(m_CurrentMousePosition.x, m_CurrentMousePosition.y, farDistance));
+                points[0] = m_Camera.ScreenToWorldPoint(new Vector3(m_CurrentMousePosition.x, m_SavedMousePosition.y, farDistance));
+            }
+            plane.Set3Points(m_Camera.transform.position, points[0], points[1]);
+            m_ClippingPlanes[0] = ToFloat4(plane);
+            plane.Set3Points(m_Camera.transform.position, points[1], points[2]);
+            m_ClippingPlanes[1] = ToFloat4(plane);
+            plane.Set3Points(m_Camera.transform.position, points[2], points[3]);
+            m_ClippingPlanes[2] = ToFloat4(plane);
+            plane.Set3Points(m_Camera.transform.position, points[3], points[0]);
+            m_ClippingPlanes[3] = ToFloat4(plane);
+            plane.Set3Points(points[2], points[1], points[0]);
+            m_ClippingPlanes[4] = ToFloat4(plane);
+        }
+
+        private float4 ToFloat4(UnityEngine.Plane plane)
+        {
+            float4 ret = default;
+            ret.x = plane.normal.x;
+            ret.y = plane.normal.y;
+            ret.z = plane.normal.z;
+            ret.w = plane.distance;
+            return ret;
+        }
+        #endregion
+
+        #region Jobs
+        [BurstCompile]
+        public struct BoxSelectionJob : IJobForEach<CustomLocalToWorld, BoxSelected, DisplayColor, DefaultColor>
+        {
+            [ReadOnly] public float4 p0, p1, p2, p3, p4;
+            [ReadOnly] public int mode;
+            public void Execute([ReadOnly] ref CustomLocalToWorld c0, [WriteOnly] ref BoxSelected c1, [WriteOnly] ref DisplayColor c2, [ReadOnly] ref DefaultColor c3)
+            {
+                if (mode == 0)
+                {
+                    float3 pos = c0.Position;
+                    float radius = c0.Value.c0.x;
+                    bool selected = true;
+                    if (p0.x * pos.x + p0.y * pos.y + p0.z * pos.z + p0.w <= radius) selected = false;
+                    if (p1.x * pos.x + p1.y * pos.y + p1.z * pos.z + p1.w <= radius) selected = false;
+                    if (p2.x * pos.x + p2.y * pos.y + p2.z * pos.z + p2.w <= radius) selected = false;
+                    if (p3.x * pos.x + p3.y * pos.y + p3.z * pos.z + p3.w <= radius) selected = false;
+                    if (p4.x * pos.x + p4.y * pos.y + p4.z * pos.z + p4.w <= radius) selected = false;
+                    c1.Value = selected;
+                    if (selected)
+                    {
+                        c2.Color = Color.red;
+                    }
+                    else
+                    {
+                        c2.Color = c3.Color;
+                    }
+                }
+                else if (mode == 1)
+                {
+                    c1.Value = false;
+                    c2.Color = c3.Color;
+                }
+                else
+                {
+                    if (c1.Value)
+                    {
+                        c2.Color = Color.red;
+                    }
+                    else
+                    {
+                        c2.Color = c3.Color;
+                    }
+                }
+            }
+        }
+
+        #endregion
+
+        protected override JobHandle OnUpdate(JobHandle inputDeps)
+        {
+            if (Input.GetKeyDown(KeyCode.Mouse0))
+            {
+                m_Selecting = true;
+                m_SavedMousePosition = Input.mousePosition;
+            }
+            if (Input.GetKeyUp(KeyCode.Mouse0))
+            {
+                m_Selecting = false;
+            }
+            if (m_Selecting)
+            {
+                m_CurrentMousePosition = Input.mousePosition;
+                if (m_Selecting && m_CurrentMousePosition != m_SavedMousePosition)
+                {
+                    CalculateClippingPlanes();
+                }
+            }
+
+            inputDeps = new BoxSelectionJob
+            {
+                mode = m_Selecting && m_CurrentMousePosition != m_SavedMousePosition ? 0 : Input.GetKeyDown(KeyCode.Escape) ? 1 : 2,
+                p0 = m_ClippingPlanes[0],
+                p1 = m_ClippingPlanes[1],
+                p2 = m_ClippingPlanes[2],
+                p3 = m_ClippingPlanes[3],
+                p4 = m_ClippingPlanes[4]
+            }.Schedule(this, inputDeps);
+            inputDeps.Complete();
+            return inputDeps;
+        }
+    }
+
+
+    #endregion
+
+    #region Presentation Systems
+
     [UpdateInGroup(typeof(PresentationSystemGroup))]
     public class BeaconRenderSystem : JobComponentSystem
     {
@@ -654,6 +833,7 @@ namespace Galaxy
 
         protected override void OnDestroyManager()
         {
+            ShutDown();
         }
         #endregion
 
@@ -662,13 +842,16 @@ namespace Galaxy
 
         protected override JobHandle OnUpdate(JobHandle inputDeps)
         {
-            if (Input.GetKeyDown(KeyCode.B)) m_DrawBeacon = !m_DrawBeacon;
-            if (m_DrawBeacon && m_BeaconAmount != 0)
+            if (m_DrawBeacon && m_BeaconAmount != 0 && m_BeaconAmount < 1024)
             {
                 m_MaterialPropertyBlock.SetVectorArray("_EmissionColor", Colors);
                 Graphics.DrawMeshInstanced(m_BeaconMesh, 0, m_BeaconMaterial,
                     Matrices,
                     BeaconAmount, m_MaterialPropertyBlock, 0, false, 0, null);
+            }
+            if (m_BeaconAmount >= 1024)
+            {
+                Debug.Log("Too many beacons! [" + m_BeaconAmount + "]");
             }
             return inputDeps;
         }
@@ -722,10 +905,13 @@ namespace Galaxy
                 typeof(Position),
                 typeof(Rotation),
                 typeof(StarProperties),
-                typeof(CustomColor),
+                typeof(DisplayColor),
+                typeof(DefaultColor),
                 typeof(OrbitProperties),
                 typeof(Scale),
-                typeof(CustomLocalToWorld)
+                typeof(CustomLocalToWorld),
+                typeof(BoxSelected),
+                typeof(RaySelected)
                 );
 
             for (ushort i = 0; i < m_StarAmount; i++)
@@ -947,8 +1133,5 @@ namespace Galaxy
             return inputDeps;
         }
     }
-
-
-
     #endregion
 }

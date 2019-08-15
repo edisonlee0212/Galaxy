@@ -51,7 +51,8 @@ namespace Galaxy
         #region Public
         private int m_StarAmount;
         private PlanetarySystem m_PlanetarySystem;
-        private SelectionSystem m_SelectionSystem;
+        private RaySelectionSystem m_RaySelectionSystem;
+        private BoxSelectionSystem m_BoxSelectionSystem;
         private CameraControl m_CameraControl;
         private GalaxyPattern m_GalaxyPattern;
         private Galaxy m_Galaxy;
@@ -64,10 +65,11 @@ namespace Galaxy
         public Mesh BeaconMesh { get => m_BeaconMesh; set => m_BeaconMesh = value; }
         public Material BeaconMaterial { get => m_BeaconMaterial; set => m_BeaconMaterial = value; }
         public Material StarIndirectMaterial { get => m_StarIndirectMaterial; set => m_StarIndirectMaterial = value; }
-        public SelectionSystem SelectionSystem { get => m_SelectionSystem; set => m_SelectionSystem = value; }
+        public RaySelectionSystem SelectionSystem { get => m_RaySelectionSystem; set => m_RaySelectionSystem = value; }
         public StarMarker StarMarker { get => m_StarMarker; set => m_StarMarker = value; }
         public PlanetarySystem PlanetarySystem { get => m_PlanetarySystem; set => m_PlanetarySystem = value; }
         public int StarAmount { get => m_StarAmount; set => m_StarAmount = value; }
+        public BoxSelectionSystem BoxSelectionSystem { get => m_BoxSelectionSystem; set => m_BoxSelectionSystem = value; }
         #endregion
 
         #region Managers
@@ -104,11 +106,13 @@ namespace Galaxy
             Galaxy.Init();
 
             //Create selection system
-            m_SelectionSystem = World.Active.GetOrCreateSystem<SelectionSystem>();
-            SelectionSystem.CameraControl = m_CameraControl;
-            SelectionSystem.PlanetarySystem = m_PlanetarySystem;
-            SelectionSystem.StarMarker = m_StarMarker;
-            m_SelectionSystem.Init();
+            m_RaySelectionSystem = World.Active.GetOrCreateSystem<RaySelectionSystem>();
+            RaySelectionSystem.CameraControl = m_CameraControl;
+            RaySelectionSystem.PlanetarySystem = m_PlanetarySystem;
+            RaySelectionSystem.StarMarker = m_StarMarker;
+            m_RaySelectionSystem.Init();
+            m_BoxSelectionSystem = World.Active.GetOrCreateSystem<BoxSelectionSystem>();
+            m_BoxSelectionSystem.Init();
 
             //Create renderer
             m_StarRenderSystem = World.Active.GetOrCreateSystem<GalaxyRenderSystem>();
@@ -127,13 +131,17 @@ namespace Galaxy
             BeaconRenderSystem.BeaconMesh = m_BeaconMesh;
             m_StarRenderSystem.Init();
             m_BeaconRenderSystem.Init();
+
+
+            
         }
         #endregion
 
         public void ShutDown()
         {
             m_Galaxy.Destroy();
-            m_SelectionSystem.ShutDown();
+            m_RaySelectionSystem.ShutDown();
+            m_BoxSelectionSystem.ShutDown();
             m_StarRenderSystem.ShutDown();
             m_BeaconRenderSystem.ShutDown();
             m_StarMarker.enabled = false;

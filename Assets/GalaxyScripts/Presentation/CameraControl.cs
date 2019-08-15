@@ -26,6 +26,7 @@ public class CameraControl : MonoBehaviour
     private EntityManager m_EntityManager;
     private OrbitProperties m_CurrentPlanetOrbitProperties;
     private Transform m_CurrentSelectedPlanetHolder;
+    private bool m_EnableGrid;
     #endregion
 
     #region Public
@@ -193,9 +194,17 @@ public class CameraControl : MonoBehaviour
                 Camera.transform.localPosition = rotation * vTemp;
                 Camera.transform.localRotation = rotation;
                 int distance = 80;
-                m_Grid.transform.GetChild(0).GetComponent<MeshRenderer>().material.SetColor("_LineColor", Color.white * (distance - m_CenterDistance >= 0 ? (distance - m_CenterDistance) / 200 : 0));
-                m_Grid.transform.GetChild(1).GetComponent<MeshRenderer>().material.SetColor("_LineColor", Color.white * (distance - m_CenterDistance >= 0 ? (distance - m_CenterDistance) / 200 : 0));
-
+                if (Input.GetKeyDown(KeyCode.B))
+                {
+                    m_EnableGrid = !m_EnableGrid;
+                    BeaconRenderSystem.DrawBeacon = m_EnableGrid;
+                    m_Grid.SetActive(m_EnableGrid);
+                }
+                if (m_EnableGrid)
+                {
+                    m_Grid.transform.GetChild(0).GetComponent<MeshRenderer>().material.SetColor("_LineColor", Color.white * (distance - m_CenterDistance >= 0 ? (distance - m_CenterDistance) / 200 : 0));
+                    m_Grid.transform.GetChild(1).GetComponent<MeshRenderer>().material.SetColor("_LineColor", Color.white * (distance - m_CenterDistance >= 0 ? (distance - m_CenterDistance) / 200 : 0));
+                }
             }
             else
             {
@@ -255,7 +264,7 @@ public class CameraControl : MonoBehaviour
                 {
                     StarTransformSimulationSystem.FollowedStar = Entity.Null;
                     m_PlanetarySystem.Reset(Entity.Null);
-                    SelectionSystem.ViewType = ViewType.Galaxy;
+                    RaySelectionSystem.ViewType = ViewType.Galaxy;
                 }
                 StarTransformSimulationSystem.ScaleFactor = 1;
             }

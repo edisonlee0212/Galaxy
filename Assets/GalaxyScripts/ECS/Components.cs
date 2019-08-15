@@ -22,6 +22,17 @@ namespace Galaxy
         }
     }
 
+    [Serializable]
+    public struct BoxSelected : IComponentData
+    {
+        public bool Value;
+    }
+
+    [Serializable]
+    public struct RaySelected : IComponentData
+    {
+        public bool Value;
+    }
 
     [Serializable]
     public struct BeaconProperties : IComponentData
@@ -95,7 +106,13 @@ namespace Galaxy
     }
 
     [Serializable]
-    public struct CustomColor : IComponentData
+    public struct DisplayColor : IComponentData
+    {
+        public Vector4 Color;
+    }
+
+    [Serializable]
+    public struct DefaultColor : IComponentData
     {
         public Vector4 Color;
     }

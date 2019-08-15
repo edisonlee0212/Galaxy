@@ -61,8 +61,8 @@ namespace Galaxy
         private static EntityQuery m_InstanceQuery;
         private static NativeArray<CustomLocalToWorld> m_StarLocalToWorlds;
         private static NativeList<CustomLocalToWorld> m_StarConnectionsLocalToWorlds;
-        private static NativeArray<CustomColor> m_CustomColors;
-        private static NativeList<CustomColor> m_StarConnectionsColors;
+        private static NativeArray<DisplayColor> m_CustomColors;
+        private static NativeList<DisplayColor> m_StarConnectionsColors;
         private static NativeList<StarConnection> m_StarConnections;
         private static Matrix4x4[] m_Matrices;
         private static Vector4[] m_Colors;
@@ -128,11 +128,11 @@ namespace Galaxy
 
             m_Camera = Camera.main;
 
-            m_InstanceQuery = EntityManager.CreateEntityQuery(typeof(CustomLocalToWorld), typeof(StarProperties), typeof(CustomColor));
+            m_InstanceQuery = EntityManager.CreateEntityQuery(typeof(CustomLocalToWorld), typeof(StarProperties), typeof(DisplayColor));
             #region Star Connections
             m_StarConnections = new NativeList<StarConnection>(Allocator.Persistent);
             m_StarConnectionsLocalToWorlds = new NativeList<CustomLocalToWorld>(Allocator.Persistent);
-            m_StarConnectionsColors = new NativeList<CustomColor>(Allocator.Persistent);
+            m_StarConnectionsColors = new NativeList<DisplayColor>(Allocator.Persistent);
             #endregion
 
             #region DrawMeshInstancedIndirect;
@@ -321,20 +321,20 @@ namespace Galaxy
         }
 
 
-        public static unsafe void ToArray(NativeSlice<CustomColor> colors, int count, Vector4[] outMatrices, int offset)
+        public static unsafe void ToArray(NativeSlice<DisplayColor> colors, int count, Vector4[] outMatrices, int offset)
         {
             fixed (Vector4* resultMatrices = outMatrices)
             {
-                CustomColor* sourceMatrices = (CustomColor*)colors.GetUnsafeReadOnlyPtr();
+                DisplayColor* sourceMatrices = (DisplayColor*)colors.GetUnsafeReadOnlyPtr();
                 UnsafeUtility.MemCpy(resultMatrices + offset, sourceMatrices, UnsafeUtility.SizeOf<Vector4>() * count);
             }
         }
 
-        public static unsafe void ToArray(NativeArray<CustomColor> colors, int count, float4[] outMatrices, int offset)
+        public static unsafe void ToArray(NativeArray<DisplayColor> colors, int count, float4[] outMatrices, int offset)
         {
             fixed (float4* resultMatrices = outMatrices)
             {
-                CustomColor* sourceMatrices = (CustomColor*)colors.GetUnsafeReadOnlyPtr();
+                DisplayColor* sourceMatrices = (DisplayColor*)colors.GetUnsafeReadOnlyPtr();
                 UnsafeUtility.MemCpy(resultMatrices + offset, sourceMatrices, UnsafeUtility.SizeOf<float4>() * count);
             }
         }
@@ -366,10 +366,10 @@ namespace Galaxy
         {
             [ReadOnly] public NativeArray<CustomLocalToWorld> customLocalToWorlds;
             [ReadOnly] public NativeArray<StarConnection> starConnections;
-            [ReadOnly] public NativeArray<CustomColor> customColors;
+            [ReadOnly] public NativeArray<DisplayColor> customColors;
             [ReadOnly] public Vector3 cameraPosition;
             [WriteOnly] public NativeArray<CustomLocalToWorld> starConnectionsLocalToWorlds;
-            [WriteOnly] public NativeArray<CustomColor> starConnectionsColors;
+            [WriteOnly] public NativeArray<DisplayColor> starConnectionsColors;
             [ReadOnly] public float widthFactor;
             public void Execute(int index)
             {
@@ -385,7 +385,7 @@ namespace Galaxy
                     float4x4.Scale(new float3(widthFactor, Vector3.Distance(from, to), widthFactor)))
                 };
                 starConnectionsLocalToWorlds[index] = customLocalToWorld;
-                CustomColor color = customColors[index];
+                DisplayColor color = customColors[index];
                 color.Color.Normalize();
                 starConnectionsColors[index] = color;
             }
@@ -396,7 +396,7 @@ namespace Galaxy
         {
             m_StarLocalToWorlds = m_InstanceQuery.ToComponentDataArray<CustomLocalToWorld>(Allocator.TempJob, out inputDeps);
             inputDeps.Complete();
-            m_CustomColors = m_InstanceQuery.ToComponentDataArray<CustomColor>(Allocator.TempJob, out inputDeps);
+            m_CustomColors = m_InstanceQuery.ToComponentDataArray<DisplayColor>(Allocator.TempJob, out inputDeps);
             inputDeps.Complete();
             #region Draw stars
             if (m_EnableInstancedIndirect)
@@ -434,7 +434,7 @@ namespace Galaxy
                     if (StarAmount - offset > 1023)
                     {
                         NativeSlice<CustomLocalToWorld> slice = m_StarLocalToWorlds.Slice(offset, 1023);
-                        NativeSlice<CustomColor> colorSlice = m_CustomColors.Slice(offset, 1023);
+                        NativeSlice<DisplayColor> colorSlice = m_CustomColors.Slice(offset, 1023);
 
                         ToArray(slice, 1023, m_Matrices, 0);
                         ToArray(colorSlice, 1023, m_Colors, 0);
@@ -449,7 +449,7 @@ namespace Galaxy
                     {
                         int amount = StarAmount - offset;
                         NativeSlice<CustomLocalToWorld> slice = m_StarLocalToWorlds.Slice(offset, amount);
-                        NativeSlice<CustomColor> colorSlice = m_CustomColors.Slice(offset, amount);
+                        NativeSlice<DisplayColor> colorSlice = m_CustomColors.Slice(offset, amount);
 
                         Matrix4x4[] matrices = new Matrix4x4[amount];
                         Vector4[] colors = new Vector4[amount];
@@ -481,40 +481,55 @@ namespace Galaxy
                     widthFactor = 0.1f
                 }.Schedule(m_StarConnections.Length, 1, inputDeps);
                 inputDeps.Complete();
-                int offset = 0;
-                int connectionAmount = m_StarConnections.Length;
-                while (offset < connectionAmount)
+                if (false)
                 {
-                    if (connectionAmount - offset > 1023)
+                    int connectionAmount = m_StarConnections.Length;
+                    m_LocalToWorldBuffer.SetData(m_StarConnectionsLocalToWorlds.ToArray());
+                    m_EmissionColorBuffer.SetData(m_StarConnectionsColors.ToArray());
+                    m_TransformationMatrixAppendBuffer.SetCounterValue(0);
+                    DispatchOBBFrustumCalculation(m_StarConnectionMesh, m_LocalToWorldBuffer, m_TransformationMatrixAppendBuffer, connectionAmount);
+                    m_StarIndirectGPUCullingMaterial.SetBuffer("drawIndexBuffer", m_TransformationMatrixAppendBuffer);
+                    m_StarIndirectGPUCullingMaterial.SetBuffer("localToWorldBuffer", m_LocalToWorldBuffer);
+                    m_StarIndirectGPUCullingMaterial.SetBuffer("emissionColorBuffer", m_EmissionColorBuffer);
+                    Graphics.DrawMeshInstancedIndirect(m_StarConnectionMesh, 0, m_StarIndirectGPUCullingMaterial, new Bounds(Vector3.zero, Vector3.one * 60000), m_ArgsBuffer, 0, null, 0, false, 0);
+                }
+                else
+                {
+                    int offset = 0;
+                    int connectionAmount = m_StarConnections.Length;
+                    while (offset < connectionAmount)
                     {
-                        NativeSlice<CustomLocalToWorld> slice = m_StarConnectionsLocalToWorlds.AsArray().Slice(offset, 1023);
-                        NativeSlice<CustomColor> colorSlice = m_StarConnectionsColors.AsArray().Slice(offset, 1023);
+                        if (connectionAmount - offset > 1023)
+                        {
+                            NativeSlice<CustomLocalToWorld> slice = m_StarConnectionsLocalToWorlds.AsArray().Slice(offset, 1023);
+                            NativeSlice<DisplayColor> colorSlice = m_StarConnectionsColors.AsArray().Slice(offset, 1023);
 
-                        ToArray(slice, 1023, m_Matrices, 0);
-                        ToArray(colorSlice, 1023, m_Colors, 0);
+                            ToArray(slice, 1023, m_Matrices, 0);
+                            ToArray(colorSlice, 1023, m_Colors, 0);
 
-                        m_MaterialPropertyBlock.SetVectorArray("_EmissionColor", m_Colors);
-                        Graphics.DrawMeshInstanced(m_StarConnectionMesh, 0, m_StarConnectionMaterial,
-                            m_Matrices,
-                            1023, m_MaterialPropertyBlock, 0, false, 0, null);
-                        offset += 1023;
-                    }
-                    else
-                    {
-                        int amount = connectionAmount - offset;
-                        NativeSlice<CustomLocalToWorld> slice = m_StarConnectionsLocalToWorlds.AsArray().Slice(offset, amount);
-                        NativeSlice<CustomColor> colorSlice = m_StarConnectionsColors.AsArray().Slice(offset, amount);
+                            m_MaterialPropertyBlock.SetVectorArray("_EmissionColor", m_Colors);
+                            Graphics.DrawMeshInstanced(m_StarConnectionMesh, 0, m_StarConnectionMaterial,
+                                m_Matrices,
+                                1023, m_MaterialPropertyBlock, 0, false, 0, null);
+                            offset += 1023;
+                        }
+                        else
+                        {
+                            int amount = connectionAmount - offset;
+                            NativeSlice<CustomLocalToWorld> slice = m_StarConnectionsLocalToWorlds.AsArray().Slice(offset, amount);
+                            NativeSlice<DisplayColor> colorSlice = m_StarConnectionsColors.AsArray().Slice(offset, amount);
 
-                        Matrix4x4[] matrices = new Matrix4x4[amount];
-                        Vector4[] colors = new Vector4[amount];
-                        ToArray(slice, amount, matrices, 0);
-                        ToArray(colorSlice, amount, colors, 0);
-                        m_MaterialPropertyBlock.SetVectorArray("_EmissionColor", colors);
+                            Matrix4x4[] matrices = new Matrix4x4[amount];
+                            Vector4[] colors = new Vector4[amount];
+                            ToArray(slice, amount, matrices, 0);
+                            ToArray(colorSlice, amount, colors, 0);
+                            m_MaterialPropertyBlock.SetVectorArray("_EmissionColor", colors);
 
-                        Graphics.DrawMeshInstanced(m_StarConnectionMesh, 0, m_StarConnectionMaterial,
-                            matrices,
-                            amount, m_MaterialPropertyBlock, 0, false, 0, null);
-                        offset += connectionAmount - offset;
+                            Graphics.DrawMeshInstanced(m_StarConnectionMesh, 0, m_StarConnectionMaterial,
+                                matrices,
+                                amount, m_MaterialPropertyBlock, 0, false, 0, null);
+                            offset += connectionAmount - offset;
+                        }
                     }
                 }
             }
