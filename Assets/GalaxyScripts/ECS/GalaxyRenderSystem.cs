@@ -117,7 +117,7 @@ namespace Galaxy
         #endregion
 
         #region Managers
-        protected override void OnCreateManager()
+        protected override void OnCreate()
         {
             Enabled = false;
         }
@@ -198,7 +198,7 @@ namespace Galaxy
             if (m_CameraPlanesBuffer != null) m_CameraPlanesBuffer.Dispose();
         }
 
-        protected override void OnDestroyManager()
+        protected override void OnDestroy()
         {
             ShutDown();
         }

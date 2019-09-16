@@ -69,7 +69,7 @@ namespace Galaxy
         #endregion
 
         #region Managers
-        protected override void OnCreateManager()
+        protected override void OnCreate()
         {
             Enabled = false;
         }
@@ -114,7 +114,7 @@ namespace Galaxy
             [ReadOnly] public double3 floatingOrigin;
             [ReadOnly] public float scaleFactor;
             [ReadOnly] public GalaxyPatternProperties properties;
-            [WriteOnly] public NativeQueue<StarRenderInfo>.Concurrent starRenderInfos;
+            [WriteOnly] public NativeQueue<StarRenderInfo>.ParallelWriter starRenderInfos;
 
             [ReadOnly] public float4 fpls1;
             [ReadOnly] public float4 fpls2;
@@ -267,7 +267,7 @@ namespace Galaxy
                         floatingOrigin = FloatingOrigin,
                         scaleFactor = m_ScaleFactor,
                         properties = m_DensityWave.DensityWaveProperties,
-                        starRenderInfos = queue.ToConcurrent(),
+                        starRenderInfos = queue.AsParallelWriter(),
                         fpls1 = fpls[0],
                         fpls2 = fpls[1],
                         fpls3 = fpls[2],
@@ -375,7 +375,7 @@ namespace Galaxy
         #endregion
 
         #region Managers
-        protected override void OnCreateManager()
+        protected override void OnCreate()
         {
             m_RayCastResultEntities = new NativeQueue<Entity>(Allocator.Persistent);
             m_Distances = new NativeQueue<float>(Allocator.Persistent);
@@ -413,7 +413,7 @@ namespace Galaxy
             ViewType = ViewType.Galaxy;
         }
 
-        protected override void OnDestroyManager()
+        protected override void OnDestroy()
         {
             m_RayCastResultEntities.Dispose();
             m_CircledResultMatrices.Dispose();
@@ -435,13 +435,13 @@ namespace Galaxy
             [ReadOnly] public Vector3 start;
             [ReadOnly] public Vector3 end;
             [ReadOnly] public float rayCastDistance;
-            [WriteOnly] public NativeQueue<Entity>.Concurrent rayCastResultEntities;
-            [WriteOnly] public NativeQueue<float>.Concurrent rayCastDistances;
-            [WriteOnly] public NativeQueue<Entity>.Concurrent circleResultEntities;
-            [WriteOnly] public NativeQueue<float>.Concurrent circleDistances;
+            [WriteOnly] public NativeQueue<Entity>.ParallelWriter rayCastResultEntities;
+            [WriteOnly] public NativeQueue<float>.ParallelWriter rayCastDistances;
+            [WriteOnly] public NativeQueue<Entity>.ParallelWriter circleResultEntities;
+            [WriteOnly] public NativeQueue<float>.ParallelWriter circleDistances;
 
-            [WriteOnly] public NativeQueue<Matrix4x4>.Concurrent CircledResultMatrices;
-            [WriteOnly] public NativeQueue<Color>.Concurrent CircledResultColors;
+            [WriteOnly] public NativeQueue<Matrix4x4>.ParallelWriter CircledResultMatrices;
+            [WriteOnly] public NativeQueue<Color>.ParallelWriter CircledResultColors;
             public void Execute([ReadOnly] Entity entity, [ReadOnly] int index, [ReadOnly] ref Scale c1, [ReadOnly] ref StarProperties c2, [ReadOnly] ref CustomLocalToWorld c3)
             {
                 float d;
@@ -502,13 +502,13 @@ namespace Galaxy
                     scaleFactor = StarTransformSimulationSystem.ScaleFactor,
                     start = ray.origin,
                     end = ray.origin + ray.direction * m_MaxRayCastDistance,
-                    CircledResultColors = m_CircledColors.ToConcurrent(),
-                    CircledResultMatrices = m_CircledResultMatrices.ToConcurrent(),
+                    CircledResultColors = m_CircledColors.AsParallelWriter(),
+                    CircledResultMatrices = m_CircledResultMatrices.AsParallelWriter(),
                     rayCastDistance = m_MaxRayCastDistance,
-                    rayCastResultEntities = m_RayCastResultEntities.ToConcurrent(),
-                    rayCastDistances = m_Distances.ToConcurrent(),
-                    circleDistances = m_CircleDistances.ToConcurrent(),
-                    circleResultEntities = m_CircleResultEntities.ToConcurrent()
+                    rayCastResultEntities = m_RayCastResultEntities.AsParallelWriter(),
+                    rayCastDistances = m_Distances.AsParallelWriter(),
+                    circleDistances = m_CircleDistances.AsParallelWriter(),
+                    circleResultEntities = m_CircleResultEntities.AsParallelWriter()
                 }.Schedule(this, inputDeps);
                 inputDeps.Complete();
                 int index = 0;
@@ -633,7 +633,7 @@ namespace Galaxy
         #endregion
 
         #region Managers
-        protected override void OnCreateManager()
+        protected override void OnCreate()
         {
             Enabled = false;
         }
@@ -651,7 +651,7 @@ namespace Galaxy
             Enabled = false;
         }
 
-        protected override void OnDestroyManager()
+        protected override void OnDestroy()
         {
             ShutDown();
         }
@@ -992,7 +992,7 @@ namespace Galaxy
 
         #region Managers
 
-        protected override void OnCreateManager()
+        protected override void OnCreate()
         {
             if (m_InstanceQuery != null) m_InstanceQuery.Dispose();
             m_InstanceQuery = EntityManager.CreateEntityQuery(typeof(StarProperties));
@@ -1008,7 +1008,7 @@ namespace Galaxy
             Update();
         }
 
-        protected override void OnDestroyManager()
+        protected override void OnDestroy()
         {
             if (StarDatas.IsCreated) StarDatas.Dispose();
             if (PlanetDatas.IsCreated) PlanetDatas.Dispose();
@@ -1033,25 +1033,6 @@ namespace Galaxy
                 starData.Reference = starsProperties[index].Index;
                 starData.Proportion = starsProperties[index].Proportion;
                 starDatas[index] = starData;
-            }
-        }
-
-        public struct PlanetDataGenerator : IJobParallelFor
-        {
-            [ReadOnly] public NativeArray<StarData> starDatas;
-            [WriteOnly] public NativeQueue<PlanetData>.Concurrent planetDatas;
-            public void Execute(int index)
-            {
-                int planetAmount = starDatas[index].PlanetAmount;
-                for (int i = 0; i < planetAmount; i++)
-                {
-                    PlanetData planetData = default;
-                    //TODO: Calculate distance to star.
-                    planetData.DistanceToStar = 6 + 2 * i;
-                    planetData.Index = (byte)i;
-                    planetData.StarReference = (ushort)index;
-                    planetDatas.Enqueue(planetData);
-                }
             }
         }
 
